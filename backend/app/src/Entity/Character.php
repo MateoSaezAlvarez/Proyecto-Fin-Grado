@@ -34,11 +34,7 @@ class Character
     #[ORM\Column(length: 255)]
     private ?string $lore = null;
 
-    /**
-     * @var Collection<int, Characteristic>
-     */
-    #[ORM\ManyToMany(targetEntity: Characteristic::class, mappedBy: 'characters')]
-    private Collection $characteristics;
+
 
     #[ORM\ManyToOne(inversedBy: 'characters')]
     #[ORM\JoinColumn(nullable: false)]
@@ -48,9 +44,16 @@ class Character
     #[ORM\JoinColumn(nullable: false)]
     private ?User $players = null;
 
+    /**
+     * @var Collection<int, Characteristic>
+     */
+    #[ORM\OneToMany(targetEntity: Characteristic::class, mappedBy: 'character', orphanRemoval: true)]
+    private Collection $Characteristics;
+
     public function __construct()
     {
         $this->characteristics = new ArrayCollection();
+        $this->Characteristics = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -130,32 +133,7 @@ class Character
         return $this;
     }
 
-    /**
-     * @return Collection<int, Characteristic>
-     */
-    public function getCharacteristics(): Collection
-    {
-        return $this->characteristics;
-    }
-
-    public function addCharacteristic(Characteristic $characteristic): static
-    {
-        if (!$this->characteristics->contains($characteristic)) {
-            $this->characteristics->add($characteristic);
-            $characteristic->addCharacter($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCharacteristic(Characteristic $characteristic): static
-    {
-        if ($this->characteristics->removeElement($characteristic)) {
-            $characteristic->removeCharacter($this);
-        }
-
-        return $this;
-    }
+    
 
     public function getCampaign(): ?Campaign
     {
@@ -177,6 +155,36 @@ class Character
     public function setPlayers(?User $players): static
     {
         $this->players = $players;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Characteristic>
+     */
+    public function getCharacteristics(): Collection
+    {
+        return $this->Characteristics;
+    }
+
+    public function addCharacteristic(Characteristic $characteristic): static
+    {
+        if (!$this->Characteristics->contains($characteristic)) {
+            $this->Characteristics->add($characteristic);
+            $characteristic->setCharacter($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCharacteristic(Characteristic $characteristic): static
+    {
+        if ($this->Characteristics->removeElement($characteristic)) {
+            // set the owning side to null (unless already changed)
+            if ($characteristic->getCharacter() === $this) {
+                $characteristic->setCharacter(null);
+            }
+        }
 
         return $this;
     }

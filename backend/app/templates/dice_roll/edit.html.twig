@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit DiceRoll{% endblock %}
+
+{% block body %}
+    <h1>Edit DiceRoll</h1>
+
+    {{ include('dice_roll/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_dice_roll_index') }}">back to list</a>
+
+    {{ include('dice_roll/_delete_form.html.twig') }}
+{% endblock %}

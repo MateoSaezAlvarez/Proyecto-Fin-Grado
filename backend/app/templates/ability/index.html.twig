@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ability index{% endblock %}
+
+{% block body %}
+    <h1>Ability index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Description</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for ability in abilities %}
+            <tr>
+                <td>{{ ability.id }}</td>
+                <td>{{ ability.description }}</td>
+                <td>
+                    <a href="{{ path('app_ability_show', {'id': ability.id}) }}">show</a>
+                    <a href="{{ path('app_ability_edit', {'id': ability.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="3">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_ability_new') }}">Create new</a>
+{% endblock %}

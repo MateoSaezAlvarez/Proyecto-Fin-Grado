@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New DiceRoll{% endblock %}
+
+{% block body %}
+    <h1>Create new DiceRoll</h1>
+
+    {{ include('dice_roll/_form.html.twig') }}
+
+    <a href="{{ path('app_dice_roll_index') }}">back to list</a>
+{% endblock %}

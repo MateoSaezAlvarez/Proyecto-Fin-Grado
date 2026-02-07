@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Characteristic{% endblock %}
+
+{% block body %}
+    <h1>Edit Characteristic</h1>
+
+    {{ include('characteristic/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_characteristic_index') }}">back to list</a>
+
+    {{ include('characteristic/_delete_form.html.twig') }}
+{% endblock %}

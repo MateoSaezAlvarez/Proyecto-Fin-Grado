@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Character index{% endblock %}
+
+{% block body %}
+    <h1>Character index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>ProficiencyBonus</th>
+                <th>Level</th>
+                <th>ClassSubclass</th>
+                <th>HitPoints</th>
+                <th>Lore</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for character in characters %}
+            <tr>
+                <td>{{ character.id }}</td>
+                <td>{{ character.name }}</td>
+                <td>{{ character.proficiencyBonus }}</td>
+                <td>{{ character.level }}</td>
+                <td>{{ character.classSubclass }}</td>
+                <td>{{ character.hitPoints }}</td>
+                <td>{{ character.lore }}</td>
+                <td>
+                    <a href="{{ path('app_character_show', {'id': character.id}) }}">show</a>
+                    <a href="{{ path('app_character_edit', {'id': character.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="8">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_character_new') }}">Create new</a>
+{% endblock %}

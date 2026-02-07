@@ -27,11 +27,10 @@ class Characteristic
     #[ORM\OneToMany(targetEntity: Ability::class, mappedBy: 'characteristic', orphanRemoval: true)]
     private Collection $abilities;
 
-    /**
-     * @var Collection<int, Character>
-     */
-    #[ORM\ManyToMany(targetEntity: Character::class, inversedBy: 'characteristics')]
-    private Collection $characters;
+    #[ORM\ManyToOne(inversedBy: 'Characteristics')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Character $character = null;
+
 
     public function __construct()
     {
@@ -98,27 +97,19 @@ class Characteristic
         return $this;
     }
 
-    /**
-     * @return Collection<int, Character>
-     */
-    public function getCharacters(): Collection
+    public function getCharacter(): ?Character
     {
-        return $this->characters;
+        return $this->character;
     }
 
-    public function addCharacter(Character $character): static
+    public function setCharacter(?Character $character): static
     {
-        if (!$this->characters->contains($character)) {
-            $this->characters->add($character);
-        }
+        $this->character = $character;
 
         return $this;
     }
 
-    public function removeCharacter(Character $character): static
-    {
-        $this->characters->removeElement($character);
+    
 
-        return $this;
-    }
+    
 }

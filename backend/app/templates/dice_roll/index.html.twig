@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}DiceRoll index{% endblock %}
+
+{% block body %}
+    <h1>DiceRoll index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>RollDate</th>
+                <th>Dice</th>
+                <th>RollValue</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for dice_roll in dice_rolls %}
+            <tr>
+                <td>{{ dice_roll.id }}</td>
+                <td>{{ dice_roll.rollDate ? dice_roll.rollDate|date('Y-m-d H:i:s') : '' }}</td>
+                <td>{{ dice_roll.dice }}</td>
+                <td>{{ dice_roll.rollValue }}</td>
+                <td>
+                    <a href="{{ path('app_dice_roll_show', {'id': dice_roll.id}) }}">show</a>
+                    <a href="{{ path('app_dice_roll_edit', {'id': dice_roll.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_dice_roll_new') }}">Create new</a>
+{% endblock %}
