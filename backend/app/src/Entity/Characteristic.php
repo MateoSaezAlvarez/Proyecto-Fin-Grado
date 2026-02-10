@@ -21,6 +21,9 @@ class Characteristic
     #[ORM\Column]
     private ?int $score = null;
 
+    #[ORM\Column]
+    private ?bool $saveProficient = false;
+
     /**
      * @var Collection<int, Ability>
      */
@@ -111,5 +114,15 @@ class Characteristic
 
     
 
-    
+    public function isSaveProficient(): ?bool
+    {
+        return $this->saveProficient;
+    }
+
+    public function setSaveProficient(bool $saveProficient): static
+    {
+        $this->saveProficient = $saveProficient;
+
+        return $this;
+    }
 }

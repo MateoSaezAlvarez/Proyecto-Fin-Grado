@@ -18,7 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api')]
 class ApiController extends AbstractController
@@ -30,7 +30,7 @@ class ApiController extends AbstractController
         $this->entityManager = $entityManager;
     }
 
-    #[Route('/login', methods: ['POST'])]
+    #[Route('/login', name: 'api_login', methods: ['POST'])]
     public function login(Request $request, UserRepository $userRepo, UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -57,7 +57,7 @@ class ApiController extends AbstractController
         ]);
     }
 
-    #[Route('/register', methods: ['POST'])]
+    #[Route('/register', name: 'api_register', methods: ['POST'])]
     public function register(Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -91,36 +91,88 @@ class ApiController extends AbstractController
     public function getCampaigns(CampaignRepository $repo): JsonResponse
     {
         $user = $this->getUser();
-        // Since we are stateless, getUser() returns the User object from the JWT token
-        if (!$user instanceof User) {
-             return $this->json(['error' => 'User not authenticated'], 401);
-        }
-
-        // Ideally fetch only user's campaigns or all if public. 
-        // For now, let's fetch all where user is DM
-        // Or if simple app, all campaigns. Let's return campaigns where user is DM for Dashboard.
+        // $user might be null if guest, but that's allowed now for viewing list
         
-        // $campaigns = $user->getCampaigns(); // If we assume DM relation
-        // Or findAll()
-        $campaigns = $repo->findAll(); 
+        $campaigns = $repo->findAll();
         
         $data = [];
         foreach ($campaigns as $c) {
+            $isDm = $user && $c->getDungeonMaster()->getId() === $user->getId();
+            $isJoined = false;
+            
+            if ($user) {
+                foreach ($c->getPlayers() as $player) {
+                    if ($player->getId() === $user->getId()) {
+                        $isJoined = true;
+                        break;
+                    }
+                }
+            }
+
             $data[] = [
                 'id' => $c->getId(),
                 'name' => $c->getName(),
                 'gameSystem' => $c->getGameSystem(),
                 'description' => $c->getDescription(),
                 'status' => $c->getStatus()->value,
+                'isDm' => $isDm,
+                'isJoined' => $isJoined,
                 'dungeonMaster' => [
                     'id' => $c->getDungeonMaster()->getId(),
                     'username' => $c->getDungeonMaster()->getUsername(),
-                    'email' => $c->getDungeonMaster()->getUsername() . '@example.com', // Mock email
+                    'email' => $c->getDungeonMaster()->getUsername() . '@example.com',
                 ],
                  'imageUrl' => "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             ];
         }
         return $this->json($data);
+    }
+
+    #[Route('/campaigns/{id}/join', methods: ['POST'])]
+    public function joinCampaign(Campaign $campaign): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'User not authenticated'], 401);
+        }
+
+        if ($campaign->getDungeonMaster() === $user) {
+            return $this->json(['error' => 'You are the DM of this campaign'], 400);
+        }
+
+        foreach ($campaign->getPlayers() as $player) {
+            if ($player->getId() === $user->getId()) {
+                 return $this->json(['error' => 'Already joined'], 400);
+            }
+        }
+
+        $campaign->addPlayer($user);
+        $this->entityManager->flush();
+
+        return $this->json(['status' => 'joined', 'campaignId' => $campaign->getId()]);
+    }
+
+    #[Route('/campaigns/{id}/my-character', methods: ['GET'])]
+    public function getMyCharacterInCampaign(Campaign $campaign): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $character = null;
+        foreach ($campaign->getCharacters() as $c) {
+            if ($c->getPlayers() === $user) {
+                $character = $c;
+                break;
+            }
+        }
+
+        if (!$character) {
+            return $this->json(['error' => 'Character not found in this campaign'], 404);
+        }
+
+        return $this->json(['id' => $character->getId(), 'name' => $character->getName()]);
     }
 
     #[Route('/campaigns', methods: ['POST'])]
@@ -139,6 +191,14 @@ class ApiController extends AbstractController
         $campaign->setDescription($data['description'] ?? '');
         $campaign->setStatus(Status::ACTIVE);
         $campaign->setDungeonMaster($user);
+
+        // Promote user to DM if not already
+        $roles = $user->getRoles();
+        if (!in_array('ROLE_DM', $roles)) {
+            $roles[] = 'ROLE_DM';
+            $user->setRoles(array_unique($roles));
+            $this->entityManager->persist($user);
+        }
 
         $this->entityManager->persist($campaign);
         $this->entityManager->flush();
@@ -179,8 +239,8 @@ class ApiController extends AbstractController
 
         $character = new Character();
         $character->setName($data['name']);
-        $character->setProficiencyBonus(2); // Default
-        $character->setLevel(1);
+        $character->setProficiencyBonus((int)($data['proficiencyBonus'] ?? 2));
+        $character->setLevel((int)($data['level'] ?? 1));
         $character->setClassSubclass($data['classSubclass']);
         $character->setHitPoints((int)$data['hitPoints']);
         $character->setLore($data['lore'] ?? '');
@@ -201,11 +261,19 @@ class ApiController extends AbstractController
 
         // Scores from input or default 10
         $inputScores = $data['scores'] ?? [];
+        // Proficiencies from input (list of strings: "Saving Throw: Strength", "Athletics", etc.)
+        $proficiencies = $data['proficiencies'] ?? [];
 
         foreach ($statsData as $name => $skills) {
             $stat = new Characteristic();
             $stat->setName($name);
             $stat->setScore($inputScores[$name] ?? 10);
+            
+            // Check Saving Throw proficiency
+            // Conventions: "Saving Throw: Strength" or just "Strength Save"? Let's assume user sends "Saving Throw: {StatName}"
+            $isSaveProficient = in_array("Saving Throw: $name", $proficiencies);
+            $stat->setSaveProficient($isSaveProficient);
+
             $stat->setCharacterId($character);
             $this->entityManager->persist($stat);
 
@@ -213,6 +281,10 @@ class ApiController extends AbstractController
                 $ability = new Ability();
                 $ability->setDescription($skillName); 
                 $ability->setCharacteristic($stat);
+                
+                $isSkillProficient = in_array($skillName, $proficiencies);
+                $ability->setIsProficient($isSkillProficient);
+
                 $this->entityManager->persist($ability);
             }
         }
@@ -258,13 +330,14 @@ class ApiController extends AbstractController
                     'id' => $ab->getId(),
                     'name' => $ab->getDescription(), 
                     'characteristicId' => $stat->getId(),
-                    'proficiency' => false, // Default for new chars
+                    'proficiency' => $ab->isProficient(),
                 ];
             }
             $stats[] = [
                 'id' => $stat->getId(),
                 'name' => $stat->getName(),
                 'score' => $stat->getScore(),
+                'saveProficient' => $stat->isSaveProficient(),
                 'characterId' => $c->getId(),
                 'abilities' => $abilities,
             ];

@@ -22,6 +22,9 @@ class Ability
     #[ORM\JoinColumn(nullable: false)]
     private ?Characteristic $characteristic = null;
 
+    #[ORM\Column]
+    private ?bool $isProficient = false;
+
     /**
      * @var Collection<int, DiceRoll>
      */
@@ -80,14 +83,14 @@ class Ability
         return $this;
     }
 
-    public function removeDiceRoll(DiceRoll $diceRoll): static
+    public function isProficient(): ?bool
     {
-        if ($this->diceRolls->removeElement($diceRoll)) {
-            // set the owning side to null (unless already changed)
-            if ($diceRoll->getAbility() === $this) {
-                $diceRoll->setAbility(null);
-            }
-        }
+        return $this->isProficient;
+    }
+
+    public function setIsProficient(bool $isProficient): static
+    {
+        $this->isProficient = $isProficient;
 
         return $this;
     }

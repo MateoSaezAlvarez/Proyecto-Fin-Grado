@@ -47,10 +47,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Campaign::class, mappedBy: 'dungeonMaster')]
     private Collection $campaigns;
 
+    /**
+     * @var Collection<int, Campaign>
+     */
+    #[ORM\ManyToMany(targetEntity: Campaign::class, mappedBy: 'players')]
+    private Collection $joinedCampaigns;
+
     public function __construct()
     {
         $this->characters = new ArrayCollection();
         $this->campaigns = new ArrayCollection();
+        $this->joinedCampaigns = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -86,8 +93,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
+        // guarantee every user at least has ROLE_USER and ROLE_PLAYER
         $roles[] = 'ROLE_USER';
+        $roles[] = 'ROLE_PLAYER';
 
         return array_unique($roles);
     }
@@ -189,6 +197,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             if ($campaign->getDungeonMaster() === $this) {
                 $campaign->setDungeonMaster(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Campaign>
+     */
+    public function getJoinedCampaigns(): Collection
+    {
+        return $this->joinedCampaigns;
+    }
+
+    public function addJoinedCampaign(Campaign $joinedCampaign): static
+    {
+        if (!$this->joinedCampaigns->contains($joinedCampaign)) {
+            $this->joinedCampaigns->add($joinedCampaign);
+            $joinedCampaign->addPlayer($this);
+        }
+
+        return $this;
+    }
+
+    public function removeJoinedCampaign(Campaign $joinedCampaign): static
+    {
+        if ($this->joinedCampaigns->removeElement($joinedCampaign)) {
+            $joinedCampaign->removePlayer($this);
         }
 
         return $this;

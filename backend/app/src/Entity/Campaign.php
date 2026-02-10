@@ -37,16 +37,20 @@ class Campaign
     #[ORM\JoinColumn(nullable: false)]
     private ?User $dungeonMaster = null;
 
-    /**
-     * @var Collection<int, DiceRoll>
-     */
     #[ORM\OneToMany(targetEntity: DiceRoll::class, mappedBy: 'campaign')]
     private Collection $rolls;
+
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'joinedCampaigns')]
+    private Collection $players;
 
     public function __construct()
     {
         $this->characters = new ArrayCollection();
         $this->rolls = new ArrayCollection();
+        $this->players = new ArrayCollection();
     }
 
 
@@ -171,6 +175,30 @@ class Campaign
                 $roll->setCampaign(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getPlayers(): Collection
+    {
+        return $this->players;
+    }
+
+    public function addPlayer(User $player): static
+    {
+        if (!$this->players->contains($player)) {
+            $this->players->add($player);
+        }
+
+        return $this;
+    }
+
+    public function removePlayer(User $player): static
+    {
+        $this->players->removeElement($player);
 
         return $this;
     }
