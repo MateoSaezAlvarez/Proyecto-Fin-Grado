@@ -52,7 +52,6 @@ class Character
 
     public function __construct()
     {
-        $this->characteristics = new ArrayCollection();
         $this->Characteristics = new ArrayCollection();
     }
 

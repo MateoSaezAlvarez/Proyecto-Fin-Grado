@@ -41,6 +41,22 @@ export const api = {
     return response.json();
   },
 
+  getCampaign: async (id: number) => {
+    const response = await fetch(`${API_URL}/campaigns/${id}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch campaign');
+    return response.json();
+  },
+
+  getCampaignCharacters: async (id: number) => {
+    const response = await fetch(`${API_URL}/campaigns/${id}/characters`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch campaign characters');
+    return response.json();
+  },
+
   createCampaign: async (data: any) => {
     const response = await fetch(`${API_URL}/campaigns`, {
       method: 'POST',
@@ -59,14 +75,23 @@ export const api = {
     return response.json();
   },
 
+  getMyCharacters: async () => {
+    const response = await fetch(`${API_URL}/my-characters`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch my characters');
+    return response.json();
+  },
+
   createCharacter: async (data: any) => {
     const response = await fetch(`${API_URL}/characters`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to create character');
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Failed to create character');
+    return result;
   },
 
   updateStat: async (characterId: number, statName: string, score: number) => {
@@ -94,5 +119,15 @@ export const api = {
       });
       if (!response.ok) return null; // Character might not exist yet
       return response.json();
+  },
+
+  submitRoll: async (data: any) => {
+    const response = await fetch(`${API_URL}/rolls`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to submit roll');
+    return response.json();
   },
 };

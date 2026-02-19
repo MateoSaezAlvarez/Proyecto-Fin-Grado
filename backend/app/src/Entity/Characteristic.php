@@ -38,7 +38,6 @@ class Characteristic
     public function __construct()
     {
         $this->abilities = new ArrayCollection();
-        $this->characters = new ArrayCollection();
     }
 
     public function getId(): ?int

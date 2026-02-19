@@ -23,8 +23,12 @@ class DiceRoll
     private ?int $rollValue = null;
 
     #[ORM\ManyToOne(inversedBy: 'diceRolls')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Ability $ability = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Characteristic $characteristic = null;
 
     #[ORM\ManyToOne(inversedBy: 'rolls')]
     #[ORM\JoinColumn(nullable: false)]
@@ -91,6 +95,18 @@ class DiceRoll
     public function setCampaign(?Campaign $campaign): static
     {
         $this->campaign = $campaign;
+
+        return $this;
+    }
+
+    public function getCharacteristic(): ?Characteristic
+    {
+        return $this->characteristic;
+    }
+
+    public function setCharacteristic(?Characteristic $characteristic): static
+    {
+        $this->characteristic = $characteristic;
 
         return $this;
     }

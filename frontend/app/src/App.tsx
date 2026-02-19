@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CharacterSheet from './pages/CharacterSheet';
 import Register from './pages/Register';
+import MyCharacters from './pages/MyCharacters';
+import CampaignDetail from './pages/CampaignDetail';
 import './index.css';
 
 const App = () => {
@@ -15,11 +17,12 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         
         {/* Protected Routes wrapped in Layout (Sidebar) */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        
-        {/* Protected Routes wrapped in Layout (Sidebar) */}
         <Route element={<Layout />}>
-          <Route path="/campaign/:id" element={<Dashboard />} /> {/* Placeholder to dash/VTT stub */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/campaigns" element={<Dashboard />} />
+          <Route path="/characters" element={<MyCharacters />} />
+          <Route path="/characters/new" element={<CreateCharacter />} />
+          <Route path="/campaign/:id" element={<CampaignDetail />} />
           <Route path="/character/:id" element={<CharacterSheet />} />
           <Route path="/campaign/:id/create-character" element={<CreateCharacter />} />
         </Route>

@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../services/api'; 
 import { useParams, useNavigate } from 'react-router-dom';
 
 const CreateCharacter = () => {
-    const { id } = useParams();
+    const { id: urlCampaignId } = useParams();
     const navigate = useNavigate();
+    const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string>(urlCampaignId || '');
+    const [error, setError] = useState<string>('');
     const [formData, setFormData] = useState({
         name: '',
         classSubclass: '',
@@ -13,35 +16,54 @@ const CreateCharacter = () => {
         proficiencyBonus: 2,
         lore: '',
         scores: {
-            'Strength': 10,
-            'Dexterity': 10,
-            'Constitution': 10,
-            'Intelligence': 10,
-            'Wisdom': 10,
-            'Charisma': 10
+            'Fuerza': 10,
+            'Destreza': 10,
+            'Constitucion': 10,
+            'Inteligencia': 10,
+            'Sabiduria': 10,
+            'Carisma': 10
         },
         proficiencies: [] as string[]
     });
 
+    useEffect(() => {
+        const fetchCampaigns = async () => {
+            try {
+                const data = await api.getCampaigns();
+                setCampaigns(data);
+                if (!selectedCampaignId && data.length > 0) {
+                    setSelectedCampaignId(data[0].id.toString());
+                }
+            } catch (err) {
+                console.error("Failed to fetch campaigns", err);
+            }
+        };
+        fetchCampaigns();
+    }, [selectedCampaignId]);
+
     // Defined skills mapping for UI
     const statsData: { [key: string]: string[] } = {
-        'Strength': ['Athletics'],
-        'Dexterity': ['Acrobatics', 'Sleight of Hand', 'Stealth'],
-        'Constitution': [],
-        'Intelligence': ['Arcana', 'History', 'Investigation', 'Nature', 'Religion'],
-        'Wisdom': ['Animal Handling', 'Insight', 'Medicine', 'Perception', 'Survival'],
-        'Charisma': ['Deception', 'Intimidation', 'Performance', 'Persuasion']
+        'Fuerza': ['Atletismo'],
+        'Destreza': ['Acrobacias', 'Juego de manos', 'Sigilo'],
+        'Constitucion': [],
+        'Inteligencia': ['Conocimiento arcano', 'Historia', 'Investigación', 'Naturaleza', 'Religion'],
+        'Sabiduria': ['Trato con animales', 'Perspicacia', 'Medicina', 'Percepción', 'Supervivencia'],
+        'Carisma': ['Engaño', 'Intimidación', 'Interpretación', 'Persuasión']
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'campaignId') {
+            setSelectedCampaignId(value);
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
     
     const handleScoreChange = (stat: string, val: string) => {
         setFormData(prev => ({
             ...prev,
-            scores: { ...prev.scores, [stat]: parseInt(val) }
+            scores: { ...prev.scores, [stat]: parseInt(val) || 0 }
         }));
     };
 
@@ -58,18 +80,21 @@ const CreateCharacter = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!id) return;
+        if (!selectedCampaignId) {
+            alert("Please select a campaign");
+            return;
+        }
         try {
             const result = await api.createCharacter({
                 ...formData,
-                campaignId: id
+                campaignId: selectedCampaignId
             });
             if (result.id) {
                 navigate(`/character/${result.id}`);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert("Failed to create character");
+            setError(err.message || "Failed to create character");
         }
     };
 
@@ -77,10 +102,24 @@ const CreateCharacter = () => {
 
     return (
         <div style={{ padding: '2rem', color: 'white', maxWidth: '800px', margin: '0 auto', paddingBottom: '4rem' }}>
-            <h1>Create Your Character</h1>
+            <h1>¿Quién eres?</h1>
+            
+            {error && (
+                <div style={{ 
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)', 
+                    border: '1px solid #dc2626', 
+                    color: '#dc2626', 
+                    padding: '1rem', 
+                    borderRadius: '4px',
+                    marginBottom: '1rem'
+                }}>
+                    {error}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '2rem' }}>
                 <div className="form-group">
-                    <label>Character Name</label>
+                    <label>Nombre del personaje</label>
                     <input 
                         name="name" 
                         value={formData.name} 
@@ -89,22 +128,39 @@ const CreateCharacter = () => {
                         className="input-field"
                     />
                 </div>
+
+                <div className="form-group">
+                    <label>Campaña en la que se encuentra el personaje</label>
+                    <select 
+                        name="campaignId" 
+                        value={selectedCampaignId} 
+                        onChange={handleChange} 
+                        required 
+                        className="input-field"
+                        style={{ backgroundColor: 'var(--bg-secondary)', color: 'white' }}
+                    >
+                        <option value="" disabled>Select a campaign</option>
+                        {campaigns.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                </div>
                 
                 <div className="grid-cols-2" style={{ gap: '1rem' }}>
                     <div className="form-group">
-                        <label>Class & Subclass</label>
+                        <label>Clase & Subclase</label>
                         <input 
                             name="classSubclass" 
                             value={formData.classSubclass} 
                             onChange={handleChange} 
-                            placeholder="e.g. Fighter (Champion)"
+                            placeholder="Guerrero, Campeón"
                             required 
                             className="input-field"
                         />
                     </div>
                 
                     <div className="form-group">
-                        <label>Level</label>
+                        <label>Nivel</label>
                         <input 
                             name="level" 
                             type="number"
@@ -116,7 +172,7 @@ const CreateCharacter = () => {
                     </div>
                     
                     <div className="form-group">
-                        <label>Proficiency Bonus</label>
+                        <label>Bonificador de competencia</label>
                         <input 
                             name="proficiencyBonus" 
                             type="number"
@@ -128,7 +184,7 @@ const CreateCharacter = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Hit Points</label>
+                        <label>Puntos de golpe</label>
                         <input 
                             name="hitPoints" 
                             type="number"
@@ -140,7 +196,7 @@ const CreateCharacter = () => {
                     </div>
                 </div>
 
-                <h3>Ability Scores & Proficiencies</h3>
+                <h3>Características & competencias</h3>
                 <div className="grid-cols-2" style={{ gap: '2rem' }}>
                     {Object.keys(statsData).map(stat => {
                          const score = (formData.scores as any)[stat];
@@ -169,7 +225,7 @@ const CreateCharacter = () => {
                                         checked={formData.proficiencies.includes(`Saving Throw: ${stat}`)}
                                         onChange={() => toggleProficiency(`Saving Throw: ${stat}`)}
                                     />
-                                    <span>Saving Throw</span>
+                                    <span>Tirada de salvación</span>
                                 </label>
                                 
                                 {/* Skills */}
@@ -189,7 +245,7 @@ const CreateCharacter = () => {
                 </div>
 
                 <div className="form-group">
-                    <label>Backstory / Lore</label>
+                    <label>Lore</label>
                     <textarea 
                         name="lore"
                         value={formData.lore}
@@ -200,7 +256,7 @@ const CreateCharacter = () => {
                 </div>
 
                 <button type="submit" className="btn-primary" style={{ marginTop: '1rem' }}>
-                    Create Character
+                    Crear personaje
                 </button>
             </form>
         </div>

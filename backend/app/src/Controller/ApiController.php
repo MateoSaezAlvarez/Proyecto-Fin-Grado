@@ -97,35 +97,47 @@ class ApiController extends AbstractController
         
         $data = [];
         foreach ($campaigns as $c) {
-            $isDm = $user && $c->getDungeonMaster()->getId() === $user->getId();
-            $isJoined = false;
-            
-            if ($user) {
-                foreach ($c->getPlayers() as $player) {
-                    if ($player->getId() === $user->getId()) {
-                        $isJoined = true;
-                        break;
-                    }
-                }
-            }
-
-            $data[] = [
-                'id' => $c->getId(),
-                'name' => $c->getName(),
-                'gameSystem' => $c->getGameSystem(),
-                'description' => $c->getDescription(),
-                'status' => $c->getStatus()->value,
-                'isDm' => $isDm,
-                'isJoined' => $isJoined,
-                'dungeonMaster' => [
-                    'id' => $c->getDungeonMaster()->getId(),
-                    'username' => $c->getDungeonMaster()->getUsername(),
-                    'email' => $c->getDungeonMaster()->getUsername() . '@example.com',
-                ],
-                 'imageUrl' => "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-            ];
+            $data[] = $this->serializeCampaign($c, $user);
         }
         return $this->json($data);
+    }
+
+    #[Route('/campaigns/{id}', methods: ['GET'])]
+    public function getCampaign(Campaign $campaign): JsonResponse
+    {
+        $user = $this->getUser();
+        return $this->json($this->serializeCampaign($campaign, $user));
+    }
+
+    private function serializeCampaign(Campaign $c, ?User $user): array
+    {
+        $isDm = $user && $c->getDungeonMaster()->getId() === $user->getId();
+        $isJoined = false;
+        
+        if ($user) {
+            foreach ($c->getPlayers() as $player) {
+                if ($player->getId() === $user->getId()) {
+                    $isJoined = true;
+                    break;
+                }
+            }
+        }
+
+        return [
+            'id' => $c->getId(),
+            'name' => $c->getName(),
+            'gameSystem' => $c->getGameSystem(),
+            'description' => $c->getDescription(),
+            'status' => $c->getStatus()->value,
+            'isDm' => $isDm,
+            'isJoined' => $isJoined,
+            'dungeonMaster' => [
+                'id' => $c->getDungeonMaster()->getId(),
+                'username' => $c->getDungeonMaster()->getUsername(),
+                'email' => $c->getDungeonMaster()->getUsername() . '@example.com',
+            ],
+            'imageUrl' => "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+        ];
     }
 
     #[Route('/campaigns/{id}/join', methods: ['POST'])]
@@ -217,6 +229,22 @@ class ApiController extends AbstractController
         return $this->json($data);
     }
 
+    #[Route('/my-characters', methods: ['GET'])]
+    public function getMyCharacters(): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $characters = $user->getCharacters();
+        $data = [];
+        foreach ($characters as $c) {
+            $data[] = $this->serializeCharacter($c);
+        }
+        return $this->json($data);
+    }
+
     #[Route('/characters/{id}', methods: ['GET'])]
     public function getCharacter(Character $character): JsonResponse
     {
@@ -259,22 +287,67 @@ class ApiController extends AbstractController
             'Charisma' => ['Deception', 'Intimidation', 'Performance', 'Persuasion']
         ];
 
+        // Mapping from Spanish to English for compatibility
+        $translationMap = [
+            'Fuerza' => 'Strength',
+            'Destreza' => 'Dexterity',
+            'Constitucion' => 'Constitution',
+            'Inteligencia' => 'Intelligence',
+            'Sabiduria' => 'Wisdom',
+            'Carisma' => 'Charisma',
+            'Atletismo' => 'Athletics',
+            'Acrobacias' => 'Acrobatics',
+            'Juego de manos' => 'Sleight of Hand',
+            'Sigilo' => 'Stealth',
+            'Conocimiento arcano' => 'Arcana',
+            'Historia' => 'History',
+            'Investigación' => 'Investigation',
+            'Naturaleza' => 'Nature',
+            'Religion' => 'Religion',
+            'Trato con animales' => 'Animal Handling',
+            'Perspicacia' => 'Insight',
+            'Medicina' => 'Medicine',
+            'Percepción' => 'Perception',
+            'Supervivencia' => 'Survival',
+            'Engaño' => 'Deception',
+            'Intimidación' => 'Intimidation',
+            'Interpretación' => 'Performance',
+            'Persuasión' => 'Persuasion'
+        ];
+
         // Scores from input or default 10
         $inputScores = $data['scores'] ?? [];
-        // Proficiencies from input (list of strings: "Saving Throw: Strength", "Athletics", etc.)
+        // Proficiencies from input
         $proficiencies = $data['proficiencies'] ?? [];
 
         foreach ($statsData as $name => $skills) {
             $stat = new Characteristic();
             $stat->setName($name);
-            $stat->setScore($inputScores[$name] ?? 10);
+            
+            // Find score in input (check English and Spanish keys)
+            $score = 10;
+            if (isset($inputScores[$name])) {
+                $score = $inputScores[$name];
+            } else {
+                // Check if there's a Spanish counterpart
+                $spanishKey = array_search($name, $translationMap);
+                if ($spanishKey && isset($inputScores[$spanishKey])) {
+                    $score = $inputScores[$spanishKey];
+                }
+            }
+            $stat->setScore((int)$score);
             
             // Check Saving Throw proficiency
-            // Conventions: "Saving Throw: Strength" or just "Strength Save"? Let's assume user sends "Saving Throw: {StatName}"
             $isSaveProficient = in_array("Saving Throw: $name", $proficiencies);
+            if (!$isSaveProficient) {
+                $spanishStat = array_search($name, $translationMap);
+                if ($spanishStat) {
+                    $isSaveProficient = in_array("Saving Throw: $spanishStat", $proficiencies);
+                }
+            }
+            
             $stat->setSaveProficient($isSaveProficient);
-
-            $stat->setCharacterId($character);
+            $stat->setCharacter($character);
             $this->entityManager->persist($stat);
 
             foreach ($skills as $skillName) {
@@ -283,6 +356,12 @@ class ApiController extends AbstractController
                 $ability->setCharacteristic($stat);
                 
                 $isSkillProficient = in_array($skillName, $proficiencies);
+                if (!$isSkillProficient) {
+                    $spanishSkill = array_search($skillName, $translationMap);
+                    if ($spanishSkill) {
+                        $isSkillProficient = in_array($spanishSkill, $proficiencies);
+                    }
+                }
                 $ability->setIsProficient($isSkillProficient);
 
                 $this->entityManager->persist($ability);
@@ -316,8 +395,40 @@ class ApiController extends AbstractController
     #[Route('/rolls', methods: ['POST'])]
     public function submitRoll(Request $request): JsonResponse
     {
-        // Log roll logic here
-        return $this->json(['status' => 'logged']);
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        
+        $data = json_decode($request->getContent(), true);
+        $campaignId = $data['campaignId'] ?? null;
+        $abilityId = $data['abilityId'] ?? null;
+        $characteristicId = $data['characteristicId'] ?? null;
+        $rollValue = $data['rollValue'] ?? 0;
+        $dice = $data['dice'] ?? 20;
+
+        $campaign = $this->entityManager->getRepository(Campaign::class)->find($campaignId);
+        if (!$campaign) {
+            return $this->json(['error' => 'Campaign not found'], 404);
+        }
+
+        $roll = new DiceRoll();
+        $roll->setCampaign($campaign);
+        $roll->setRollValue($rollValue);
+        $roll->setDice($dice);
+        $roll->setRollDate(new \DateTime());
+
+        if ($abilityId) {
+            $ability = $this->entityManager->getRepository(Ability::class)->find($abilityId);
+            if ($ability) $roll->setAbility($ability);
+        }
+
+        if ($characteristicId) {
+            $characteristic = $this->entityManager->getRepository(Characteristic::class)->find($characteristicId);
+            if ($characteristic) $roll->setCharacteristic($characteristic);
+        }
+
+        $this->entityManager->persist($roll);
+        $this->entityManager->flush();
+
+        return $this->json(['status' => 'success', 'id' => $roll->getId()]);
     }
 
     private function serializeCharacter(Character $c): array
@@ -351,8 +462,12 @@ class ApiController extends AbstractController
             'classSubclass' => $c->getClassSubclass(),
             'hitPoints' => $c->getHitPoints(),
             'lore' => $c->getLore(),
-            'campaignId' => $c->getCampaign()->getId(),
+            'campaign' => [
+                'id' => $c->getCampaign()->getId(),
+                'name' => $c->getCampaign()->getName(),
+            ],
             'playerId' => $c->getPlayers()->getId(),
+            'playerName' => $c->getPlayers()->getUsername(),
             'imageUrl' => "https://images.unsplash.com/photo-1636224213709-668b57731998?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             'characteristics' => $stats,
         ];

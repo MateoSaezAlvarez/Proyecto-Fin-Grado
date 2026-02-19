@@ -1,4 +1,4 @@
-import { Home, MessageSquare, Book, Music, Settings, User } from 'lucide-react';
+import { Home, Book, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -17,32 +17,20 @@ const Sidebar = () => {
       top: 0
     }}>
       <div style={{ marginBottom: '2rem', color: 'var(--accent-color)' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>d20</h1>
+        <h1 style={{ fontSize: '1.2rem', fontWeight: 'bold', fontFamily: 'Cinzel, serif' }}>d20</h1>
       </div>
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} style={navLinkStyle}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} style={navLinkStyle} title="Home">
           <Home size={24} />
         </NavLink>
-        <div style={navLinkStyle} title="Chat">
-          <MessageSquare size={24} />
-        </div>
-        <div style={navLinkStyle} title="Journal">
+        <NavLink to="/campaigns" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} style={navLinkStyle} title="Campaigns">
           <Book size={24} />
-        </div>
-        <div style={navLinkStyle} title="Jukebox">
-          <Music size={24} />
-        </div>
-        <div style={navLinkStyle} title="Settings">
-          <Settings size={24} />
-        </div>
-      </nav>
-
-      <div style={{ marginTop: 'auto' }}>
-        <NavLink to="/profile" style={navLinkStyle}>
-          <User size={24} />
         </NavLink>
-      </div>
+        <NavLink to="/characters" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} style={navLinkStyle} title="My Characters">
+          <Users size={24} />
+        </NavLink>
+      </nav>
     </aside>
   );
 };

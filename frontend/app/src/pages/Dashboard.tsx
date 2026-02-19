@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api, getAuthToken, removeAuthToken } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
 
 const Dashboard = () => {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newCampaign, setNewCampaign] = useState({
+    name: '',
+    gameSystem: 'D&D 5.5e',
+    description: ''
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,24 +34,40 @@ const Dashboard = () => {
     fetchCampaigns();
   }, []);
 
-  const handleCreateNewGame = async () => {
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowCreateModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  const handleCreateNewGame = () => {
     if (isGuest) {
-        navigate('/register');
-        return;
+      navigate('/register');
+      return;
     }
-    
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       if (!getAuthToken()) {
         navigate('/login');
         return;
       }
-      const name = prompt("Enter Game Name:");
-      if (!name) return;
       
-      const newGame = await api.createCampaign({ name });
-      setCampaigns([...campaigns, { ...newGame, name, id: campaigns.length + 1 }]);
+      await api.createCampaign(newCampaign);
+      // Refresh list to get full data and correct IDs
+      const data = await api.getCampaigns();
+      setCampaigns(data);
+      setShowCreateModal(false);
+      setNewCampaign({ name: '', gameSystem: 'D&D 5.5e', description: '' });
     } catch (err) {
-      alert("Failed to create game");
+      alert("No se pudo crear la campaña");
     }
   };
 
@@ -61,65 +82,43 @@ const Dashboard = () => {
 
 
 
-  const handleLaunchGame = async (campaign: any) => {
-      if (campaign.isDm) {
-          navigate(`/campaign/${campaign.id}`);
-      } else {
-          // If Player, try to find character
-          try {
-              const character = await api.getMyCharacterInCampaign(campaign.id);
-              if (character) {
-                  navigate(`/character/${character.id}`);
-              } else {
-                  // No character, redirect to create one
-                  const doCreate = window.confirm("You don't have a character in this campaign yet. Create one?");
-                  if (doCreate) {
-                      navigate(`/campaign/${campaign.id}/create-character`);
-                  }
-              }
-          } catch (err) {
-              console.error("Error checking character", err);
-              // Fallback to create character if error suggests 404/not found
-              navigate(`/campaign/${campaign.id}/create-character`);
-          }
-      }
+  const handleLaunchGame = (campaign: any) => {
+      navigate(`/campaign/${campaign.id}`);
   };
 
   const handleJoinCampaign = async (id: number) => {
       try {
           await api.joinCampaign(id);
-          alert("Joined successfully!");
+          alert("Te has unido a la campaña exitosamente");
           // Refresh list
           const data = await api.getCampaigns();
           setCampaigns(data);
       } catch (err) {
-          alert("Failed to join campaign.");
+          alert("No se pudo unir a la campaña.");
       }
   };
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-        {!isGuest && <Sidebar />}
-        <main style={{ padding: '2rem', width: '100%', minHeight: '100vh', backgroundColor: 'var(--bg-primary)', marginLeft: isGuest ? 0 : '64px' }}>
+    return (
+        <main style={{ padding: '2rem', width: '100%', minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h1>{isGuest ? 'Welcome to d20 Clone' : 'All Games'}</h1>
+            <h1>{isGuest ? 'Bienvenido al multiverso de D&D' : 'Todas las campañas'}</h1>
             <div style={{ display: 'flex', gap: '1rem' }}>
                 {isGuest ? (
                     <>
                     <button className="btn-primary" onClick={() => navigate('/login')} style={{ backgroundColor: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}>
-                        Login
+                        Iniciar sesion
                     </button>
                     <button className="btn-primary" onClick={() => navigate('/register')}>
-                        Register
+                        Registrarse
                     </button>
                     </>
                 ) : (
                     <>
                     <button className="btn-primary" onClick={handleCreateNewGame}>
-                        Create New Game
+                        Crear nueva campaña
                     </button>
                     <button className="btn-primary" onClick={handleLogout} style={{ backgroundColor: 'var(--danger-color)' }}>
-                        Logout
+                        Cerrar sesión
                     </button>
                     </>
                 )}
@@ -127,23 +126,23 @@ const Dashboard = () => {
         </header>
 
         {loading ? (
-            <div>Loading campaigns...</div>
+            <div>Cargando las campañas...</div>
         ) : (
             <div className="grid-cols-3">
             {isGuest ? (
                 <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-                    <h2>Join the Adventure</h2>
-                    <p style={{ marginBottom: '2rem' }}>Login to view and join active campaigns.</p>
-                    <button className="btn-primary" onClick={() => navigate('/register')}>Get Started</button>
+                    <h2>Únete a la aventura</h2>
+                    <p style={{ marginBottom: '2rem' }}>Inicia sesión para ver y unirte a las campañas activas.</p>
+                    <button className="btn-primary" onClick={() => navigate('/register')}>Comenzar</button>
                     
                     <div className="card" style={{ marginTop: '2rem', maxWidth: '400px', margin: '2rem auto', textAlign: 'left', opacity: 0.7 }}>
-                         <h3 style={{ marginBottom: '0.5rem' }}>Demo Campaign</h3>
-                         <p>Login to play</p>
+                         <h3 style={{ marginBottom: '0.5rem' }}>Campaña de demostración</h3>
+                         <p>Inicia sesión para jugar</p>
                     </div>
                 </div>
             ) : campaigns.length === 0 ? (
                 <div style={{ gridColumn: 'span 3', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    No campaigns available. Create one!
+                    No hay campañas disponibles. ¡Crea una!
                 </div>
             ) : (
                 campaigns.map((campaign) => (
@@ -178,13 +177,13 @@ const Dashboard = () => {
                                 handleJoinCampaign(campaign.id);
                             }}
                         >
-                            Join Campaign
+                            Unirse a la campaña
                         </button>
                     )}
                 </div>
                 
                 <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    Host: {campaign.dungeonMaster?.username || 'You'} {campaign.isDm && '(You)'}
+                    DM: {campaign.dungeonMaster?.username || 'Tú'} {campaign.isDm && '(Tú)'}
                 </div>
                 <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{campaign.gameSystem || '5e'}</span>
@@ -197,7 +196,7 @@ const Dashboard = () => {
                             handleLaunchGame(campaign);
                         }}
                         >
-                        Launch Game &gt;
+                        Jugar
                         </button>
                     )}
                 </div>
@@ -205,9 +204,64 @@ const Dashboard = () => {
             )))} 
             </div>
         )}
+
+        {showCreateModal && (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <h2 style={{ marginBottom: '1.5rem', color: 'var(--accent-color)' }}>Contar una nueva historia</h2>
+                    <form onSubmit={handleSubmitCreate}>
+                        <div className="form-group">
+                            <label htmlFor="name">Nombre de la campaña</label>
+                            <input 
+                                id="name"
+                                type="text" 
+                                className="input-field" 
+                                value={newCampaign.name}
+                                onChange={(e) => setNewCampaign({...newCampaign, name: e.target.value})}
+                                placeholder="El nombre de tu aventura..."
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="gameSystem">Sistema de juego</label>
+                            <input 
+                                id="gameSystem"
+                                type="text" 
+                                className="input-field" 
+                                value={newCampaign.gameSystem}
+                                onChange={(e) => setNewCampaign({...newCampaign, gameSystem: e.target.value})}
+                                placeholder="D&D 5.5e, Pathfinder, La llamada de Cthulhu..."
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="description">Descripción</label>
+                            <textarea 
+                                id="description"
+                                className="textarea-field" 
+                                value={newCampaign.description}
+                                onChange={(e) => setNewCampaign({...newCampaign, description: e.target.value})}
+                                placeholder="Cuéntanos un poco sobre el mundo..."
+                            />
+                        </div>
+                        <div className="modal-actions">
+                            <button 
+                                type="button" 
+                                style={{ backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                                onClick={() => setShowCreateModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button type="submit" className="btn-primary">
+                                Crear Campaña
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
         </main>
-    </div>
-  );
+    );
 };
 
 export default Dashboard;
