@@ -49,7 +49,7 @@ const DiceRollModal: React.FC<DiceRollModalProps> = ({ isOpen, onClose, rollName
             {total}
           </div>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Total Result
+            Resultado total
           </div>
         </div>
 
@@ -61,7 +61,7 @@ const DiceRollModal: React.FC<DiceRollModalProps> = ({ isOpen, onClose, rollName
           <div style={{ fontSize: '1.5rem', color: 'var(--text-secondary)' }}>+</div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{modifier}</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Modifier</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Modificador</div>
           </div>
         </div>
 

@@ -139,7 +139,7 @@ const CreateCharacter = () => {
                         className="input-field"
                         style={{ backgroundColor: 'var(--bg-secondary)', color: 'white' }}
                     >
-                        <option value="" disabled>Select a campaign</option>
+                        <option value="" disabled>Selecciona una campaña</option>
                         {campaigns.map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}

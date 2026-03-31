@@ -29,14 +29,14 @@ const Login = () => {
     }}>
       <div className="card" style={{ width: '400px' }}>
         <h2 style={{ textAlign: 'center', color: 'var(--accent-color)', fontFamily: 'Cinzel, serif' }}>
-          Roll20 Clone
+          Solo Tiradas De Rol
         </h2>
         
         {error && <div style={{ color: 'var(--danger-color)', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Username</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Nombre de usuario</label>
             <input 
               type="text" 
               className="input-field" 
@@ -47,7 +47,7 @@ const Login = () => {
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Password</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Contraseña</label>
             <input 
               type="password" 
               className="input-field" 
@@ -58,12 +58,12 @@ const Login = () => {
           </div>
 
           <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-            Sign In
+            Registrarse
           </button>
         </form>
 
         <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Don't have an account? <Link to="/register" style={{ color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'none' }}>Join Free</Link>
+          ¿No tienes una cuenta? <Link to="/register" style={{ color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'none' }}>Regístrese gratis</Link>
         </div>
       </div>
     </div>

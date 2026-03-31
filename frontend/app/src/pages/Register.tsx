@@ -41,7 +41,7 @@ const Register = () => {
 
         <form onSubmit={handleRegister}>
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Username</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Nombre de usuario</label>
             <input 
               type="text" 
               className="input-field" 
@@ -52,7 +52,7 @@ const Register = () => {
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Password</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Contraseña</label>
             <input 
               type="password" 
               className="input-field" 
@@ -63,7 +63,7 @@ const Register = () => {
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Confirm Password</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Confirmar contraseña</label>
             <input 
               type="password" 
               className="input-field" 
@@ -74,12 +74,12 @@ const Register = () => {
           </div>
 
           <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-            Create Account
+            Crear Cuenta
           </button>
         </form>
 
         <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Already have an account? <Link to="/login" style={{ color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'none' }}>Sign In</Link>
+          ¿Ya tienes una cuenta? <Link to="/login" style={{ color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'none' }}>Inicia Sesión</Link>
         </div>
       </div>
     </div>

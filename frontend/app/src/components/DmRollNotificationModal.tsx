@@ -50,7 +50,7 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
           animation: 'dmRollIn 0.35s cubic-bezier(0.34,1.56,0.64,1)',
         }}
       >
-        {/* Badge */}
+        {/* Banner */}
         <div style={{
           display: 'inline-block',
           fontSize: '0.65rem',
@@ -63,10 +63,10 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
           padding: '0.15rem 0.6rem',
           marginBottom: '1.25rem',
         }}>
-          🎲 Tirada del jugador
+          Tirada del jugador
         </div>
 
-        {/* Character name */}
+        {/* Nombre del personaje */}
         <h2 style={{
           fontFamily: 'Cinzel, serif',
           color: 'white',
@@ -76,12 +76,12 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
           {notification.characterName ?? '—'}
         </h2>
 
-        {/* Roll category */}
+        {/* Categoría de la tirada */}
         <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
           {notification.rollName ?? 'Tirada'}
         </div>
 
-        {/* Crit / fumble banner */}
+        {/* Crítico / pifia */}
         {isCrit && (
           <div style={{ color: '#ffd700', fontFamily: 'Cinzel, serif', fontWeight: 700, letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
             ¡Un 20 natural! ¡Eso es un crítico!
@@ -93,7 +93,7 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
           </div>
         )}
 
-        {/* Big total */}
+        {/* Total de la tirada */}
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{
             fontSize: '4.5rem',
@@ -109,7 +109,7 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
           </div>
         </div>
 
-        {/* Breakdown row */}
+        {/* Desglose de la tirada */}
         {notification.baseRoll !== null && (
           <div style={{
             display: 'flex',
@@ -133,7 +133,7 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
 
             <div style={{ fontSize: '1.5rem', color: 'var(--text-secondary)', fontWeight: 300 }}>+</div>
 
-            {/* Modifier */}
+            {/* Modificador */}
             <div style={{ textAlign: 'center', minWidth: '48px' }}>
               <div style={{ fontSize: '2rem', fontWeight: 700, color: 'white' }}>
                 {modLabel}
@@ -157,12 +157,6 @@ const DmRollNotificationModal: React.FC<Props> = ({ notification, onClose }) => 
           </div>
         )}
 
-        {/* Formula */}
-        {notification.baseRoll !== null && (
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginBottom: '1.5rem' }}>
-            {notification.baseRoll} (d20) {modLabel} (mod) = {notification.total}
-          </div>
-        )}
 
         <button className="btn-primary" onClick={onClose} style={{ width: '100%' }}>
           Entendido
