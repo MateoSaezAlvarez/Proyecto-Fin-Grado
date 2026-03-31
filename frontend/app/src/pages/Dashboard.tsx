@@ -89,7 +89,7 @@ const Dashboard = () => {
   const handleJoinCampaign = async (id: number) => {
       try {
           await api.joinCampaign(id);
-          alert("Te has unido a la campaña exitosamente");
+          alert("Te has unido a la campaña con éxito");
           // Refresh list
           const data = await api.getCampaigns();
           setCampaigns(data);
@@ -101,7 +101,7 @@ const Dashboard = () => {
     return (
         <main style={{ padding: '2rem', width: '100%', minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h1>{isGuest ? 'Bienvenido al multiverso de D&D' : 'Todas las campañas'}</h1>
+            <h1>{isGuest ? 'Bienvenido al multiverso de D&D' : `Todas las campañas`}</h1>
             <div style={{ display: 'flex', gap: '1rem' }}>
                 {isGuest ? (
                     <>
@@ -135,10 +135,10 @@ const Dashboard = () => {
                     <p style={{ marginBottom: '2rem' }}>Inicia sesión para ver y unirte a las campañas activas.</p>
                     <button className="btn-primary" onClick={() => navigate('/register')}>Comenzar</button>
                     
-                    <div className="card" style={{ marginTop: '2rem', maxWidth: '400px', margin: '2rem auto', textAlign: 'left', opacity: 0.7 }}>
+                    {/* <div className="card" style={{ marginTop: '2rem', maxWidth: '400px', margin: '2rem auto', textAlign: 'left', opacity: 0.7 }}>
                          <h3 style={{ marginBottom: '0.5rem' }}>Campaña de demostración</h3>
                          <p>Inicia sesión para jugar</p>
-                    </div>
+                    </div> */}
                 </div>
             ) : campaigns.length === 0 ? (
                 <div style={{ gridColumn: 'span 3', textAlign: 'center', color: 'var(--text-secondary)' }}>

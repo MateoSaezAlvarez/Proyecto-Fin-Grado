@@ -431,6 +431,74 @@ class ApiController extends AbstractController
         return $this->json(['status' => 'success', 'id' => $roll->getId()]);
     }
 
+    #[Route('/campaigns/{id}/rolls', methods: ['GET'])]
+    public function getCampaignRolls(Campaign $campaign): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $rolls = $this->entityManager->getRepository(DiceRoll::class)
+            ->findBy(['campaign' => $campaign], ['rollDate' => 'DESC'], 20);
+
+        $data = [];
+        foreach ($rolls as $roll) {
+            $characterName = null;
+            $rollName      = null;
+            $modifier      = null;
+
+            // Resolve the characteristic — either directly or through the ability
+            $stat    = $roll->getCharacteristic();
+            $ability = $roll->getAbility();
+            if (!$stat && $ability) {
+                $stat = $ability->getCharacteristic();
+            }
+
+            if ($stat) {
+                $character     = $stat->getCharacter();
+                $characterName = $character?->getName();
+                $profBonus     = $character?->getProficiencyBonus() ?? 2;
+                $score         = $stat->getScore() ?? 10;
+                $baseMod       = (int) floor(($score - 10) / 2);
+
+                if ($ability) {
+                    // ── Skill check ────────────────────────────────────────
+                    $rollName = $ability->getDescription();
+                    $modifier = $baseMod + ($ability->isProficient() ? $profBonus : 0);
+                } else {
+                    // ── Characteristic check or Saving Throw ───────────────
+                    // Detect saves vs plain checks: only when save-proficient
+                    // AND adding profBonus yields a valid d20 range [1,20]
+                    // while NOT adding it does NOT — avoids ambiguity.
+                    $total           = $roll->getRollValue();
+                    $withProf        = $baseMod + $profBonus;
+                    $withoutProf     = $baseMod;
+                    $validWithProf   = ($total - $withProf) >= 1 && ($total - $withProf) <= 20;
+                    $validWithout    = ($total - $withoutProf) >= 1 && ($total - $withoutProf) <= 20;
+                    $isSave          = $stat->isSaveProficient() && $validWithProf && !$validWithout;
+
+                    $modifier = $isSave ? $withProf : $withoutProf;
+                    $rollName = $isSave
+                        ? 'Salvación de ' . $stat->getName()
+                        : 'Tirada de '    . $stat->getName();
+                }
+            }
+
+            $total    = $roll->getRollValue();
+            $baseRoll = $modifier !== null ? $total - $modifier : null;
+
+            $data[] = [
+                'id'            => $roll->getId(),
+                'characterName' => $characterName,
+                'rollName'      => $rollName,
+                'baseRoll'      => $baseRoll,
+                'modifier'      => $modifier,
+                'total'         => $total,
+                'rollDate'      => $roll->getRollDate()?->format('c'),
+            ];
+        }
+
+        return $this->json($data);
+    }
+
     private function serializeCharacter(Character $c): array
     {
         $stats = [];

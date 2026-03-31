@@ -70,7 +70,7 @@ const DiceRollModal: React.FC<DiceRollModalProps> = ({ isOpen, onClose, rollName
           onClick={onClose}
           style={{ marginTop: '2rem', width: '100%' }}
         >
-          Close
+          Entendido
         </button>
       </div>
 

@@ -130,4 +130,12 @@ export const api = {
     if (!response.ok) throw new Error('Failed to submit roll');
     return response.json();
   },
+
+  getCampaignRolls: async (campaignId: number) => {
+    const response = await fetch(`${API_URL}/campaigns/${campaignId}/rolls`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch campaign rolls');
+    return response.json();
+  },
 };
