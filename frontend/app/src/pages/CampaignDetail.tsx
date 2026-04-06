@@ -71,7 +71,7 @@ const CampaignDetail = () => {
 
     // ─────────────────────────────────────────────────────────────────────
     if (loading) return <div style={{ padding: '2rem', color: 'white' }}>Cargando detalles de la campaña...</div>;
-    if (!campaign) return <div style={{ padding: '2rem', color: 'white' }}>Campaña no encontrada</div>;
+    if (!campaign) return <div style={{ padding: '2rem', color: 'white' }}>Campaña no encontrada.</div>;
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -144,28 +144,51 @@ const CampaignDetail = () => {
                     </div>
                 ) : (
                     <div className="grid-cols-3">
-                        {characters.map((char) => (
-                            <div
-                                key={char.id}
-                                className="card"
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => navigate(`/character/${char.id}`)}
-                            >
-                                <div style={{
-                                    borderRadius: '8px',
-                                    marginBottom: '1rem',
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                }} />
-                                <h3>{char.name}</h3>
-                                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                    {char.classSubclass} - Nivel {char.level}
+                        {characters.map((char) => {
+                            const canAccess = char.isPlayer || campaign.isDm;
+                            return (
+                                <div
+                                    key={char.id}
+                                    className="card"
+                                    style={{ 
+                                        cursor: canAccess ? 'pointer' : 'default',
+                                        opacity: canAccess ? 1 : 0.6,
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onClick={() => {
+                                        if (canAccess) {
+                                            navigate(`/character/${char.id}`);
+                                        }
+                                    }}
+                                >
+                                    <div style={{
+                                        borderRadius: '8px',
+                                        marginBottom: '1rem',
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                    }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h3>{char.name}</h3>
+                                        {char.isPlayer && (
+                                            <span style={{ 
+                                                fontSize: '0.7rem', 
+                                                background: 'var(--accent-color)', 
+                                                padding: '0.1rem 0.4rem', 
+                                                borderRadius: '4px',
+                                                color: 'black',
+                                                fontWeight: 'bold'
+                                            }}>TUYO</span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                        {char.classSubclass} - Nivel {char.level}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                                        Jugador: {char.playerName || 'Unknown'}
+                                    </div>
                                 </div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                                    Jugador: {char.playerName || 'Unknown'}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </section>

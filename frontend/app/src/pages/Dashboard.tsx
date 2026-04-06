@@ -134,11 +134,6 @@ const Dashboard = () => {
                     <h2>Únete a la aventura</h2>
                     <p style={{ marginBottom: '2rem' }}>Inicia sesión para ver y unirte a las campañas activas.</p>
                     <button className="btn-primary" onClick={() => navigate('/register')}>Comenzar</button>
-                    
-                    {/* <div className="card" style={{ marginTop: '2rem', maxWidth: '400px', margin: '2rem auto', textAlign: 'left', opacity: 0.7 }}>
-                         <h3 style={{ marginBottom: '0.5rem' }}>Campaña de demostración</h3>
-                         <p>Inicia sesión para jugar</p>
-                    </div> */}
                 </div>
             ) : campaigns.length === 0 ? (
                 <div style={{ gridColumn: 'span 3', textAlign: 'center', color: 'var(--text-secondary)' }}>

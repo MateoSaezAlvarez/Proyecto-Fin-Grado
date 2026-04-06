@@ -58,7 +58,7 @@ const Login = () => {
           </div>
 
           <button type="submit" className="btn-primary" style={{ width: '100%' }}>
-            Registrarse
+            Iniciar Sesión
           </button>
         </form>
 

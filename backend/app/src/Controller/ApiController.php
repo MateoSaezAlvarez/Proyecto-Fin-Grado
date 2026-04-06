@@ -221,10 +221,11 @@ class ApiController extends AbstractController
     #[Route('/campaigns/{id}/characters', methods: ['GET'])]
     public function getCampaignCharacters(Campaign $campaign): JsonResponse
     {
+        $user = $this->getUser();
         $characters = $campaign->getCharacters();
         $data = [];
         foreach ($characters as $c) {
-            $data[] = $this->serializeCharacter($c);
+            $data[] = $this->serializeCharacter($c, $user);
         }
         return $this->json($data);
     }
@@ -240,7 +241,7 @@ class ApiController extends AbstractController
         $characters = $user->getCharacters();
         $data = [];
         foreach ($characters as $c) {
-            $data[] = $this->serializeCharacter($c);
+            $data[] = $this->serializeCharacter($c, $user);
         }
         return $this->json($data);
     }
@@ -248,8 +249,9 @@ class ApiController extends AbstractController
     #[Route('/characters/{id}', methods: ['GET'])]
     public function getCharacter(Character $character): JsonResponse
     {
+        $user = $this->getUser();
         // Add security check? For now open if you have ID
-        return $this->json($this->serializeCharacter($character));
+        return $this->json($this->serializeCharacter($character, $user));
     }
 
     #[Route('/characters', methods: ['POST'])]
@@ -499,7 +501,7 @@ class ApiController extends AbstractController
         return $this->json($data);
     }
 
-    private function serializeCharacter(Character $c): array
+    private function serializeCharacter(Character $c, ?User $user = null): array
     {
         $stats = [];
         foreach ($c->getCharacteristics() as $stat) {
@@ -534,8 +536,9 @@ class ApiController extends AbstractController
                 'id' => $c->getCampaign()->getId(),
                 'name' => $c->getCampaign()->getName(),
             ],
-            'playerId' => $c->getPlayers()->getId(),
-            'playerName' => $c->getPlayers()->getUsername(),
+            'playerId' => $c->getPlayers() ? $c->getPlayers()->getId() : null,
+            'playerName' => $c->getPlayers() ? $c->getPlayers()->getUsername() : 'Unknown',
+            'isPlayer' => $user && $c->getPlayers() && $c->getPlayers()->getId() === $user->getId(),
             'imageUrl' => "https://images.unsplash.com/photo-1636224213709-668b57731998?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             'characteristics' => $stats,
         ];
