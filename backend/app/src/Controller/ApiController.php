@@ -379,23 +379,67 @@ class ApiController extends AbstractController
         return $this->json(['status' => 'success', 'id' => $character->getId()], 201);
     }
 
+    #[Route('/characters/{id}', methods: ['PUT'])]
+    public function updateCharacter(Character $character, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        $user = $this->getUser();
+        
+        // Only allow the player of the character or the DM of the campaign to edit
+        $isDm = $character->getCampaign()->getDungeonMaster() === $user;
+        $isOwner = $character->getPlayers() === $user;
+        
+        if (!$isDm && !$isOwner) {
+            return $this->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        
+        if (isset($data['name'])) $character->setName($data['name']);
+        if (isset($data['level'])) $character->setLevel((int)$data['level']);
+        if (isset($data['classSubclass'])) $character->setClassSubclass($data['classSubclass']);
+        if (isset($data['hitPoints'])) $character->setHitPoints((int)$data['hitPoints']);
+        if (isset($data['lore'])) $character->setLore($data['lore']);
+        if (isset($data['proficiencyBonus'])) $character->setProficiencyBonus((int)$data['proficiencyBonus']);
+
+        $this->entityManager->flush();
+
+        return $this->json(['status' => 'success']);
+    }
+
     #[Route('/characters/{id}/stats', methods: ['PUT'])]
     public function updateStat(Character $character, Request $request): JsonResponse
     {
         $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
 
         $data = json_decode($request->getContent(), true);
-        $statName = $data['name'];
-        $score = $data['score'];
+        $statName = $data['name'] ?? null;
+        $score = $data['score'] ?? null;
+        $saveProficient = $data['saveProficient'] ?? null;
 
         foreach ($character->getCharacteristics() as $stat) {
             if ($stat->getName() === $statName) {
-                $stat->setScore((int)$score);
+                if ($score !== null) $stat->setScore((int)$score);
+                if ($saveProficient !== null) $stat->setSaveProficient((bool)$saveProficient);
                 $this->entityManager->flush();
                 return $this->json(['status' => 'updated']);
             }
         }
         return $this->json(['error' => 'Stat not found'], 404);
+    }
+
+    #[Route('/abilities/{id}', methods: ['PUT'])]
+    public function updateAbility(Ability $ability, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        
+        $data = json_decode($request->getContent(), true);
+        if (isset($data['isProficient'])) {
+            $ability->setIsProficient((bool)$data['isProficient']);
+        }
+        
+        $this->entityManager->flush();
+        return $this->json(['status' => 'success']);
     }
 
     #[Route('/rolls', methods: ['POST'])]

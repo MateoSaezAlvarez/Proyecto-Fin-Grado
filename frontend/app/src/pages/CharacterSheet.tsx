@@ -8,6 +8,7 @@ const CharacterSheet = () => {
   const [character, setCharacter] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('core');
+  const [currentHp, setCurrentHp] = useState<number>(0);
   
   // Dice Roll State
   const [isRollModalOpen, setIsRollModalOpen] = useState(false);
@@ -24,6 +25,7 @@ const CharacterSheet = () => {
       try {
         const data = await api.getCharacter(parseInt(id, 10));
         setCharacter(data);
+        setCurrentHp(data.hitPoints); // Initialize local tracker with max HP from DB
       } catch (err) {
         console.error(err);
       } finally {
@@ -46,6 +48,59 @@ const CharacterSheet = () => {
       await api.updateStat(character.id, statName, value);
     } catch (err) {
       console.error('Failed to save stat', err);
+    }
+  };
+
+  const handleCharacterUpdate = async (updates: any) => {
+    // Optimistic update
+    setCharacter((prev: any) => ({
+      ...prev,
+      ...updates
+    }));
+
+    try {
+      await api.updateCharacter(character.id, updates);
+    } catch (err) {
+      console.error('Failed to update character', err);
+    }
+  };
+
+  const handleProficiencyToggle = async (abilityId: number, currentProficiency: boolean) => {
+    const newProficiency = !currentProficiency;
+    
+    // Optimistic update
+    setCharacter((prev: any) => ({
+      ...prev,
+      characteristics: prev.characteristics.map((stat: any) => ({
+        ...stat,
+        abilities: stat.abilities.map((ab: any) => 
+          ab.id === abilityId ? { ...ab, proficiency: newProficiency } : ab
+        )
+      }))
+    }));
+
+    try {
+      await api.updateAbility(abilityId, newProficiency);
+    } catch (err) {
+      console.error('Failed to toggle proficiency', err);
+    }
+  };
+
+  const handleSaveProficiencyToggle = async (statName: string, currentProficiency: boolean) => {
+    const newProficiency = !currentProficiency;
+
+    // Optimistic update
+    setCharacter((prev: any) => ({
+      ...prev,
+      characteristics: prev.characteristics.map((stat: any) => 
+        stat.name === statName ? { ...stat, saveProficient: newProficiency } : stat
+      )
+    }));
+
+    try {
+      await api.updateStat(character.id, statName, undefined, newProficiency);
+    } catch (err) {
+      console.error('Failed to toggle save proficiency', err);
     }
   };
 
@@ -93,14 +148,138 @@ const CharacterSheet = () => {
         paddingBottom: '1rem'
       }}>
         <div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{character.name}</h1>
-          <div style={{ color: 'var(--text-secondary)' }}>
-            Level {character.level} {character.classSubclass}
+          <input 
+            type="text" 
+            value={character.name}
+            onChange={(e) => handleCharacterUpdate({ name: e.target.value })}
+            style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 'bold',
+              background: 'transparent', 
+              border: 'none', 
+              borderBottom: '1px solid transparent',
+              color: 'white',
+              width: '100%',
+              marginBottom: '0.5rem',
+              outline: 'none'
+            }}
+            onFocus={(e) => e.target.style.borderBottom = '1px solid var(--accent-color)'}
+            onBlur={(e) => e.target.style.borderBottom = '1px solid transparent'}
+          />
+          <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>Nivel</span>
+            <input 
+              type="number" 
+              value={character.level}
+              onChange={(e) => handleCharacterUpdate({ level: parseInt(e.target.value) || 0 })}
+              style={{ 
+                background: 'transparent', 
+                border: '1px solid transparent', 
+                borderBottom: '1px solid var(--border-color)',
+                color: 'white', 
+                width: '40px',
+                textAlign: 'center',
+                fontSize: '1rem'
+              }}
+            />
+            <input 
+              type="text" 
+              value={character.classSubclass}
+              onChange={(e) => handleCharacterUpdate({ classSubclass: e.target.value })}
+              style={{ 
+                background: 'transparent', 
+                border: '1px solid transparent', 
+                borderBottom: '1px solid var(--border-color)',
+                color: 'white', 
+                fontSize: '1rem',
+                flex: 1
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '1rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}>
+              <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Bono Comp.</span>
+              <input 
+                type="number" 
+                value={character.proficiencyBonus}
+                onChange={(e) => handleCharacterUpdate({ proficiencyBonus: parseInt(e.target.value) || 0 })}
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none',
+                  color: 'var(--accent-color)', 
+                  width: '35px',
+                  textAlign: 'center',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  outline: 'none'
+                }}
+              />
+            </div>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>HP</div>
-          <div style={{ fontSize: '2rem', color: 'var(--success-color)' }}>{character.hitPoints} / {character.hitPoints}</div>
+          <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Vida (Puntos de Golpe)</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.8rem' }}>
+            
+            {/* Local HP Tracker (For damage/healing during session) */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              background: 'rgba(0,0,0,0.3)', 
+              borderRadius: '12px', 
+              padding: '0.3rem 0.6rem',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              <button 
+                onClick={() => setCurrentHp(prev => Math.max(0, prev - 1))}
+                style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', fontSize: '1.2rem', cursor: 'pointer', padding: '0 0.4rem', fontWeight: 'bold' }}
+              >−</button>
+              <input 
+                type="number" 
+                value={currentHp}
+                onChange={(e) => setCurrentHp(parseInt(e.target.value) || 0)}
+                title="Vida Actual"
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  color: 'white', 
+                  width: '45px', 
+                  textAlign: 'center', 
+                  fontSize: '1.6rem', 
+                  fontWeight: 'bold',
+                  outline: 'none'
+                }}
+              />
+              <button 
+                onClick={() => setCurrentHp(prev => Math.min(character.hitPoints + 100, prev + 1))}
+                style={{ background: 'transparent', border: 'none', color: 'var(--success-color)', fontSize: '1.2rem', cursor: 'pointer', padding: '0 0.4rem', fontWeight: 'bold' }}
+              >+</button>
+            </div>
+
+            <span style={{ fontSize: '1.5rem', opacity: 0.3, fontWeight: 'light' }}>/</span>
+
+            {/* Max HP (Editable, Saved to DB) */}
+            <div style={{ position: 'relative' }} title="Vida Máxima">
+              <input 
+                type="number" 
+                value={character.hitPoints}
+                onChange={(e) => handleCharacterUpdate({ hitPoints: parseInt(e.target.value) || 0 })}
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none',
+                  borderBottom: '2px solid rgba(255,255,255,0.2)',
+                  color: 'rgba(255,255,255,0.6)', 
+                  width: '60px',
+                  textAlign: 'left',
+                  fontSize: '1.6rem',
+                  fontWeight: 'bold',
+                  outline: 'none',
+                  padding: '0'
+                }}
+              />
+              <div style={{ position: 'absolute', bottom: '-15px', right: '0', fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase' }}>Máx</div>
+            </div>
+          </div>
+          <div style={{ fontSize: '0.7rem', opacity: 0.4, marginTop: '1rem', fontStyle: 'italic' }}>*La vida actual se recupera al descansar (actualizar)</div>
         </div>
       </div>
 
@@ -185,33 +364,47 @@ const CharacterSheet = () => {
                           </div>
                       </div>
 
-                      {/* Skills List */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {/* Saving Throw (Implicit skill-like check) */}
-                          <div 
-                            title="Click para tirar la Tirada de Salvación"
-                            onClick={() => handleRoll(`Salvación de ${statDisplay}`, mod + (stat.saveProficient ? character.proficiencyBonus : 0), undefined, stat.id)}
-                            style={{ display: 'flex', alignItems: 'center', padding: '0.2rem 0', opacity: 0.8, cursor: 'pointer' }}
-                          >
-                              <div style={{ 
-                                width: '8px', 
-                                height: '8px', 
-                                borderRadius: '50%', 
-                                background: stat.saveProficient ? 'var(--accent-color)' : 'var(--bg-input)',
-                                border: '1px solid var(--text-secondary)',
-                                marginRight: '0.5rem'
-                              }} />
-                              <span style={{ fontSize: '0.9rem' }}>Tirada de salvación</span>
-                              <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>
-                                {(() => {
-                                   const saveMod = mod + (stat.saveProficient ? character.proficiencyBonus : 0);
-                                   return (saveMod > 0 ? '+' : '') + saveMod;
-                                })()}
-                              </span>
-                          </div>
+                        {/* Skills List */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {/* Saving Throw (Implicit skill-like check) */}
+                            <div 
+                              style={{ display: 'flex', alignItems: 'center', padding: '0.2rem 0', opacity: 0.8 }}
+                            >
+                                <div 
+                                  title={stat.saveProficient ? "Quitar competencia" : "Añadir competencia"}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSaveProficiencyToggle(stat.name, stat.saveProficient);
+                                  }}
+                                  style={{ 
+                                    width: '12px', 
+                                    height: '12px', 
+                                    borderRadius: '50%', 
+                                    background: stat.saveProficient ? 'var(--accent-color)' : 'transparent',
+                                    border: `2px solid ${stat.saveProficient ? 'var(--accent-color)' : 'var(--text-secondary)'}`,
+                                    marginRight: '0.8rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: stat.saveProficient ? '0 0 8px var(--accent-color)' : 'none'
+                                  }} 
+                                />
+                                <div 
+                                  title="Click para tirar la Tirada de Salvación"
+                                  onClick={() => handleRoll(`Salvación de ${statDisplay}`, mod + (stat.saveProficient ? character.proficiencyBonus : 0), undefined, stat.id)}
+                                  style={{ cursor: 'pointer', flex: 1, display: 'flex' }}
+                                >
+                                  <span style={{ fontSize: '0.9rem' }}>Tirada de salvación</span>
+                                  <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>
+                                    {(() => {
+                                      const saveMod = mod + (stat.saveProficient ? character.proficiencyBonus : 0);
+                                      return (saveMod > 0 ? '+' : '') + saveMod;
+                                    })()}
+                                  </span>
+                                </div>
+                            </div>
 
-                           {statAbilities.map((ability: any) => {
-                            const abilityMod = mod + (ability.proficiency ? character.proficiencyBonus : 0);
+                             {statAbilities.map((ability: any) => {
+                              const abilityMod = mod + (ability.proficiency ? character.proficiencyBonus : 0);
                             const skillTranslations: { [key: string]: string } = {
                                 'Athletics': 'Atletismo',
                                 'Acrobatics': 'Acrobacias',
@@ -237,21 +430,35 @@ const CharacterSheet = () => {
                             return (
                               <div 
                                 key={ability.id} 
-                                title={`Click para tirar ${displayName}`}
-                                onClick={() => handleRoll(displayName, abilityMod, ability.id)}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}
                               >
-                                <div style={{ 
-                                  width: '8px', 
-                                  height: '8px', 
-                                  borderRadius: '50%', 
-                                  background: ability.proficiency ? 'var(--accent-color)' : 'var(--bg-input)',
-                                  border: '1px solid var(--text-secondary)'
-                                }} />
-                                <span>{displayName}</span>
-                                <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
-                                  {abilityMod > 0 ? '+' : ''}{abilityMod}
-                                </span>
+                                <div 
+                                  title={ability.proficiency ? "Quitar competencia" : "Añadir competencia"}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleProficiencyToggle(ability.id, ability.proficiency);
+                                  }}
+                                  style={{ 
+                                    width: '12px', 
+                                    height: '12px', 
+                                    borderRadius: '50%', 
+                                    background: ability.proficiency ? 'var(--accent-color)' : 'transparent',
+                                    border: `2px solid ${ability.proficiency ? 'var(--accent-color)' : 'var(--text-secondary)'}`,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: ability.proficiency ? '0 0 8px var(--accent-color)' : 'none'
+                                  }} 
+                                />
+                                <div 
+                                  title={`Click para tirar ${displayName}`}
+                                  onClick={() => handleRoll(displayName, abilityMod, ability.id)}
+                                  style={{ cursor: 'pointer', flex: 1, display: 'flex', alignItems: 'center' }}
+                                >
+                                  <span>{displayName}</span>
+                                  <span style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>
+                                    {abilityMod > 0 ? '+' : ''}{abilityMod}
+                                  </span>
+                                </div>
                               </div>
                             );
                           })}
@@ -268,7 +475,24 @@ const CharacterSheet = () => {
       {activeTab === 'bio' && (
          <div className="card">
            <h3>Trasfondo</h3>
-           <p>{character.lore || 'No hay trasfondo escrito todavia...'}</p>
+           <textarea
+             value={character.lore || ''}
+             onChange={(e) => handleCharacterUpdate({ lore: e.target.value })}
+             placeholder="Escribe el trasfondo de tu personaje aquí..."
+             style={{
+               width: '100%',
+               minHeight: '200px',
+               background: 'var(--bg-input)',
+               border: '1px solid var(--border-color)',
+               color: 'white',
+               padding: '1rem',
+               borderRadius: '8px',
+               resize: 'vertical',
+               fontFamily: 'inherit',
+               fontSize: '1rem',
+               lineHeight: '1.6'
+             }}
+           />
          </div>
       )}
 

@@ -95,13 +95,33 @@ export const api = {
     return result;
   },
 
-  updateStat: async (characterId: number, statName: string, score: number) => {
+  updateStat: async (characterId: number, statName: string, score?: number, saveProficient?: boolean) => {
     const response = await fetch(`${API_URL}/characters/${characterId}/stats`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ name: statName, score }),
+      body: JSON.stringify({ name: statName, score, saveProficient }),
     });
     if (!response.ok) throw new Error('Failed to update stat');
+    return response.json();
+  },
+
+  updateAbility: async (abilityId: number, isProficient: boolean) => {
+    const response = await fetch(`${API_URL}/abilities/${abilityId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ isProficient }),
+    });
+    if (!response.ok) throw new Error('Failed to update ability');
+    return response.json();
+  },
+
+  updateCharacter: async (id: number, data: any) => {
+    const response = await fetch(`${API_URL}/characters/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update character');
     return response.json();
   },
 
