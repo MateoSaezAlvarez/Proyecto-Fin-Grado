@@ -128,7 +128,7 @@ class ApiController extends AbstractController
             'name' => $c->getName(),
             'gameSystem' => $c->getGameSystem(),
             'description' => $c->getDescription(),
-            'status' => $c->getStatus()->value,
+            'status' => $c->getStatus() ? $c->getStatus()->value : 'active',
             'isDm' => $isDm,
             'isJoined' => $isJoined,
             'dungeonMaster' => [
@@ -212,8 +212,12 @@ class ApiController extends AbstractController
             $this->entityManager->persist($user);
         }
 
-        $this->entityManager->persist($campaign);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->persist($campaign);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Database error: ' . $e->getMessage()], 500);
+        }
 
         return $this->json(['status' => 'success', 'id' => $campaign->getId()], 201);
     }

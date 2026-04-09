@@ -31,7 +31,7 @@ final class CampaignController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $campaign->setDungeonMaster($this->getUser());
-            $campaign->setStatus('ACTIVE');
+            $campaign->setStatus(\App\Entity\Status::ACTIVE);
             $entityManager->persist($campaign);
             $entityManager->flush();
 

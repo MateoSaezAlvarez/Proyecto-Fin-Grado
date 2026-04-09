@@ -66,8 +66,8 @@ const Dashboard = () => {
       setCampaigns(data);
       setShowCreateModal(false);
       setNewCampaign({ name: '', gameSystem: 'D&D 5.5e', description: '' });
-    } catch (err) {
-      alert("No se pudo crear la campaña");
+    } catch (err: any) {
+      alert(err.message || "No se pudo crear la campaña");
     }
   };
 

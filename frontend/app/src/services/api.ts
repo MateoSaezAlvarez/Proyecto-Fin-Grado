@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080/api';
 
 export const getAuthToken = () => sessionStorage.getItem('token');
 export const setAuthToken = (token: string) => sessionStorage.setItem('token', token);
@@ -63,8 +63,9 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to create campaign');
-    return response.json();
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Failed to create campaign');
+    return result;
   },
 
   getCharacter: async (id: number) => {
