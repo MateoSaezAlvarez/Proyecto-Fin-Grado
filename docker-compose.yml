@@ -55,7 +55,7 @@ services:
       JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
       JWT_PASSPHRASE: proyectotfg
     volumes:
-      # Mount pre-generated JWT keys (run `make jwt` or see README)
+      - ./backend/app:/var/www/html
       - ./backend/app/config/jwt:/var/www/html/config/jwt:ro
 
   # ── React / Vite frontend ─────────────────────────────────────────────────

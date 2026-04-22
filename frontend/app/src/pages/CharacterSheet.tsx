@@ -326,7 +326,7 @@ const CharacterSheet = () => {
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
         {[
           { id: 'core', label: 'Estadísticas' },
-          { id: 'ataques', label: 'Ataques' },
+          { id: 'attacks', label: 'Ataques' },
           { id: 'bio', label: 'Historia' },
         ].map(tab => (
           <button
@@ -343,11 +343,8 @@ const CharacterSheet = () => {
             }}
           >
             {tab.label}
-            {tab.id === 'ataques' && character.attacks?.length > 0 && (
-              <span style={{
-                marginLeft: '0.5rem', background: 'rgba(255,255,255,0.2)',
-                borderRadius: '10px', padding: '0 0.4rem', fontSize: '0.75rem'
-              }}>
+            {tab.id === 'attacks' && (character?.attacks?.length > 0) && (
+              <span style={{ marginLeft: '0.6rem', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '0 0.4rem', fontSize: '0.75rem' }}>
                 {character.attacks.length}
               </span>
             )}
@@ -464,7 +461,7 @@ const CharacterSheet = () => {
       )}
 
       {/* ─── Ataques tab ─── */}
-      {activeTab === 'ataques' && (
+      {activeTab === 'attacks' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
 
           {/* Empty state */}
