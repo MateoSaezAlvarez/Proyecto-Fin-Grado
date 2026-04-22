@@ -50,9 +50,16 @@ class Character
     #[ORM\OneToMany(targetEntity: Characteristic::class, mappedBy: 'character', orphanRemoval: true)]
     private Collection $Characteristics;
 
+    /**
+     * @var Collection<int, Attack>
+     */
+    #[ORM\OneToMany(targetEntity: Attack::class, mappedBy: 'Attacks')]
+    private Collection $attacks;
+
     public function __construct()
     {
         $this->Characteristics = new ArrayCollection();
+        $this->attacks = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -182,6 +189,36 @@ class Character
             // set the owning side to null (unless already changed)
             if ($characteristic->getCharacter() === $this) {
                 $characteristic->setCharacter(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Attack>
+     */
+    public function getAttacks(): Collection
+    {
+        return $this->attacks;
+    }
+
+    public function addAttack(Attack $attack): static
+    {
+        if (!$this->attacks->contains($attack)) {
+            $this->attacks->add($attack);
+            $attack->setAttacks($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAttack(Attack $attack): static
+    {
+        if ($this->attacks->removeElement($attack)) {
+            // set the owning side to null (unless already changed)
+            if ($attack->getAttacks() === $this) {
+                $attack->setAttacks(null);
             }
         }
 

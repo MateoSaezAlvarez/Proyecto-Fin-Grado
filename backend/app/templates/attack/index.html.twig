@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Attack index{% endblock %}
+
+{% block body %}
+    <h1>Attack index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Modifier</th>
+                <th>Damage</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for attack in attacks %}
+            <tr>
+                <td>{{ attack.id }}</td>
+                <td>{{ attack.Name }}</td>
+                <td>{{ attack.Modifier }}</td>
+                <td>{{ attack.Damage }}</td>
+                <td>
+                    <a href="{{ path('app_attack_show', {'id': attack.id}) }}">show</a>
+                    <a href="{{ path('app_attack_edit', {'id': attack.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_attack_new') }}">Create new</a>
+{% endblock %}

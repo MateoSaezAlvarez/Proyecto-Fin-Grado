@@ -34,10 +34,17 @@ class Characteristic
     #[ORM\JoinColumn(nullable: false)]
     private ?Character $character = null;
 
+    /**
+     * @var Collection<int, Attack>
+     */
+    #[ORM\OneToMany(targetEntity: Attack::class, mappedBy: 'RelatedCharacteristic')]
+    private Collection $attacks;
+
 
     public function __construct()
     {
         $this->abilities = new ArrayCollection();
+        $this->attacks = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -121,6 +128,36 @@ class Characteristic
     public function setSaveProficient(bool $saveProficient): static
     {
         $this->saveProficient = $saveProficient;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Attack>
+     */
+    public function getAttacks(): Collection
+    {
+        return $this->attacks;
+    }
+
+    public function addAttack(Attack $attack): static
+    {
+        if (!$this->attacks->contains($attack)) {
+            $this->attacks->add($attack);
+            $attack->setRelatedCharacteristic($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAttack(Attack $attack): static
+    {
+        if ($this->attacks->removeElement($attack)) {
+            // set the owning side to null (unless already changed)
+            if ($attack->getRelatedCharacteristic() === $this) {
+                $attack->setRelatedCharacteristic(null);
+            }
+        }
 
         return $this;
     }

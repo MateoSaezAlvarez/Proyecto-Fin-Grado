@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\DiceRollRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: DiceRollRepository::class)]
@@ -33,6 +35,17 @@ class DiceRoll
     #[ORM\ManyToOne(inversedBy: 'rolls')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Campaign $campaign = null;
+
+    /**
+     * @var Collection<int, Attack>
+     */
+    #[ORM\OneToMany(targetEntity: Attack::class, mappedBy: 'rolls_id')]
+    private Collection $attacks_id;
+
+    public function __construct()
+    {
+        $this->attacks_id = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -107,6 +120,36 @@ class DiceRoll
     public function setCharacteristic(?Characteristic $characteristic): static
     {
         $this->characteristic = $characteristic;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Attack>
+     */
+    public function getAttacksId(): Collection
+    {
+        return $this->attacks_id;
+    }
+
+    public function addAttacksId(Attack $attacksId): static
+    {
+        if (!$this->attacks_id->contains($attacksId)) {
+            $this->attacks_id->add($attacksId);
+            $attacksId->setRollsId($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAttacksId(Attack $attacksId): static
+    {
+        if ($this->attacks_id->removeElement($attacksId)) {
+            // set the owning side to null (unless already changed)
+            if ($attacksId->getRollsId() === $this) {
+                $attacksId->setRollsId(null);
+            }
+        }
 
         return $this;
     }
