@@ -513,6 +513,7 @@ class ApiController extends AbstractController
                 $stat = $attack->getRelatedCharacteristic();
             }
 
+            $rollType = 'Habilidad';
             if ($stat) {
                 $character     = $stat->getCharacter();
                 $characterName = $character?->getName();
@@ -521,17 +522,16 @@ class ApiController extends AbstractController
                 $baseMod       = (int) floor(($score - 10) / 2);
 
                 if ($attack) {
+                    $rollType = 'Ataque';
                     $rollName = $attack->getName();
                     $modifier = $baseMod + ($attack->getProficiencyBonus() ? $profBonus : 0) + $attack->getModifier();
                 } elseif ($ability) {
                     // ── Skill check ────────────────────────────────────────
+                    $rollType = 'Habilidad';
                     $rollName = $ability->getDescription();
                     $modifier = $baseMod + ($ability->isProficient() ? $profBonus : 0);
                 } else {
                     // ── Characteristic check or Saving Throw ───────────────
-                    // Detect saves vs plain checks: only when save-proficient
-                    // AND adding profBonus yields a valid d20 range [1,20]
-                    // while NOT adding it does NOT — avoids ambiguity.
                     $total           = $roll->getRollValue();
                     $withProf        = $baseMod + $profBonus;
                     $withoutProf     = $baseMod;
@@ -539,6 +539,7 @@ class ApiController extends AbstractController
                     $validWithout    = ($total - $withoutProf) >= 1 && ($total - $withoutProf) <= 20;
                     $isSave          = $stat->isSaveProficient() && $validWithProf && !$validWithout;
 
+                    $rollType = $isSave ? 'Salvación' : 'Habilidad';
                     $modifier = $isSave ? $withProf : $withoutProf;
                     $rollName = $isSave
                         ? 'Salvación de ' . $stat->getName()
@@ -553,6 +554,7 @@ class ApiController extends AbstractController
                 'id'            => $roll->getId(),
                 'characterName' => $characterName,
                 'rollName'      => $rollName,
+                'rollType'      => $rollType,
                 'baseRoll'      => $baseRoll,
                 'modifier'      => $modifier,
                 'total'         => $total,

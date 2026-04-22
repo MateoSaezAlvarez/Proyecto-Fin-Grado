@@ -4,6 +4,7 @@ export interface RollNotification {
   id: number;
   characterName: string | null;
   rollName: string | null;
+  rollType?: string | null;
   baseRoll: number | null;
   modifier: number | null;
   total: number;

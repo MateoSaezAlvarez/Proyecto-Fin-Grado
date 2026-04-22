@@ -15,6 +15,8 @@ const CampaignDetail = () => {
 
     // DM notification state
     const [rollNotification, setRollNotification] = useState<RollNotification | null>(null);
+    const [recentRolls, setRecentRolls] = useState<RollNotification[]>([]);
+    const [showRecentRolls, setShowRecentRolls] = useState(false);
     const lastSeenId = useRef<number | null>(null);
     const pollTimer  = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -68,6 +70,17 @@ const CampaignDetail = () => {
         pollTimer.current = setInterval(poll, POLL_MS);
         return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
     }, [campaign?.isDm, id]);
+    
+    const handleGetRecentRolls = async () => {
+        if (!id) return;
+        try {
+            const rolls: RollNotification[] = await api.getCampaignRolls(parseInt(id, 10));
+            setRecentRolls(rolls.slice(0, 10));
+            setShowRecentRolls(!showRecentRolls);
+        } catch (err) {
+            console.error('Error fetching recent rolls:', err);
+        }
+    };
 
     // ─────────────────────────────────────────────────────────────────────
     if (loading) return <div style={{ padding: '2rem', color: 'white' }}>Cargando detalles de la campaña...</div>;
@@ -122,6 +135,77 @@ const CampaignDetail = () => {
                                     animation: 'dmPulse 2s ease-in-out infinite',
                                 }} />
                                 Escuchando tiradas de los jugadores…
+                            </div>
+                        )}
+
+                        {campaign.isDm && (
+                            <div style={{ marginTop: '1rem' }}>
+                                <button 
+                                    onClick={handleGetRecentRolls}
+                                    style={{
+                                        background: 'transparent',
+                                        border: '1px solid var(--accent-color)',
+                                        color: 'var(--accent-color)',
+                                        padding: '0.4rem 1rem',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'Cinzel, serif',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 0 10px rgba(139,92,246,0.1)'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.background = 'var(--accent-color)';
+                                        e.currentTarget.style.color = 'black';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = 'var(--accent-color)';
+                                    }}
+                                >
+                                    {showRecentRolls ? 'Ocultar últimas tiradas' : 'Ver últimas 10 tiradas'}
+                                </button>
+                                
+                                {showRecentRolls && recentRolls.length > 0 && (
+                                    <div style={{ 
+                                        marginTop: '1.5rem', 
+                                        background: 'rgba(255,255,255,0.03)', 
+                                        border: '1px solid var(--border-color)',
+                                        padding: '1.2rem', 
+                                        borderRadius: '8px',
+                                        maxWidth: '500px',
+                                        animation: 'fadeIn 0.3s ease-out'
+                                    }}>
+                                        <h4 style={{ 
+                                            margin: '0 0 1rem 0', 
+                                            fontFamily: 'Cinzel, serif', 
+                                            fontSize: '0.9rem',
+                                            color: 'var(--accent-color)',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            paddingBottom: '0.5rem'
+                                        }}>
+                                            Historial de Tiradas
+                                        </h4>
+                                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                            {recentRolls.map(roll => (
+                                                <li key={roll.id} style={{ 
+                                                    padding: '0.6rem 0', 
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    fontSize: '0.9rem',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between'
+                                                }}>
+                                                    <span>
+                                                        <strong style={{ color: 'var(--accent-color)' }}>{roll.characterName}.</strong> {roll.rollType}, {roll.total}
+                                                    </span>
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                                        {new Date(roll.rollDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -203,6 +287,10 @@ const CampaignDetail = () => {
                 @keyframes dmPulse {
                     0%, 100% { opacity: 1; transform: scale(1); }
                     50%       { opacity: 0.3; transform: scale(0.85); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-5px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
         </div>
