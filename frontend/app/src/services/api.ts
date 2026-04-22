@@ -12,6 +12,16 @@ const getHeaders = () => {
   };
 };
 
+/** Safely parse JSON — if the server returns HTML (error page), throw a readable error */
+const safeJson = async (response: Response) => {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(`Server returned non-JSON response (${response.status}): ${text.slice(0, 120)}`);
+  }
+  return response.json();
+};
+
 export const api = {
   login: async (credentials: any) => {
     const response = await fetch(`${API_URL}/login`, {
@@ -20,7 +30,7 @@ export const api = {
       body: JSON.stringify(credentials),
     });
     if (!response.ok) throw new Error('Login failed');
-    return response.json();
+    return safeJson(response);
   },
 
   register: async (userData: any) => {
@@ -30,31 +40,25 @@ export const api = {
       body: JSON.stringify(userData),
     });
     if (!response.ok) throw new Error('Registration failed');
-    return response.json();
+    return safeJson(response);
   },
 
   getCampaigns: async () => {
-    const response = await fetch(`${API_URL}/campaigns`, {
-      headers: getHeaders(),
-    });
+    const response = await fetch(`${API_URL}/campaigns`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch campaigns');
-    return response.json();
+    return safeJson(response);
   },
 
   getCampaign: async (id: number) => {
-    const response = await fetch(`${API_URL}/campaigns/${id}`, {
-      headers: getHeaders(),
-    });
+    const response = await fetch(`${API_URL}/campaigns/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch campaign');
-    return response.json();
+    return safeJson(response);
   },
 
   getCampaignCharacters: async (id: number) => {
-    const response = await fetch(`${API_URL}/campaigns/${id}/characters`, {
-      headers: getHeaders(),
-    });
+    const response = await fetch(`${API_URL}/campaigns/${id}/characters`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch campaign characters');
-    return response.json();
+    return safeJson(response);
   },
 
   createCampaign: async (data: any) => {
@@ -63,25 +67,21 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    const result = await response.json();
+    const result = await safeJson(response);
     if (!response.ok) throw new Error(result.error || 'Failed to create campaign');
     return result;
   },
 
   getCharacter: async (id: number) => {
-    const response = await fetch(`${API_URL}/characters/${id}`, {
-      headers: getHeaders(),
-    });
+    const response = await fetch(`${API_URL}/characters/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch character');
-    return response.json();
+    return safeJson(response);
   },
 
   getMyCharacters: async () => {
-    const response = await fetch(`${API_URL}/my-characters`, {
-      headers: getHeaders(),
-    });
+    const response = await fetch(`${API_URL}/my-characters`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch my characters');
-    return response.json();
+    return safeJson(response);
   },
 
   createCharacter: async (data: any) => {
@@ -90,7 +90,7 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    const result = await response.json();
+    const result = await safeJson(response);
     if (!response.ok) throw new Error(result.error || 'Failed to create character');
     return result;
   },
@@ -102,7 +102,7 @@ export const api = {
       body: JSON.stringify({ name: statName, score, saveProficient }),
     });
     if (!response.ok) throw new Error('Failed to update stat');
-    return response.json();
+    return safeJson(response);
   },
 
   updateAbility: async (abilityId: number, isProficient: boolean) => {
@@ -112,7 +112,7 @@ export const api = {
       body: JSON.stringify({ isProficient }),
     });
     if (!response.ok) throw new Error('Failed to update ability');
-    return response.json();
+    return safeJson(response);
   },
 
   updateCharacter: async (id: number, data: any) => {
@@ -122,24 +122,24 @@ export const api = {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update character');
-    return response.json();
+    return safeJson(response);
   },
 
   joinCampaign: async (id: number) => {
     const response = await fetch(`${API_URL}/campaigns/${id}/join`, {
-        method: 'POST',
-        headers: getHeaders(),
+      method: 'POST',
+      headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to join campaign');
-    return response.json();
+    return safeJson(response);
   },
 
   getMyCharacterInCampaign: async (campaignId: number) => {
-      const response = await fetch(`${API_URL}/campaigns/${campaignId}/my-character`, {
-          headers: getHeaders(),
-      });
-      if (!response.ok) return null; // Character might not exist yet
-      return response.json();
+    const response = await fetch(`${API_URL}/campaigns/${campaignId}/my-character`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) return null;
+    return safeJson(response);
   },
 
   submitRoll: async (data: any) => {
@@ -149,7 +149,7 @@ export const api = {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to submit roll');
-    return response.json();
+    return safeJson(response);
   },
 
   getCampaignRolls: async (campaignId: number) => {
@@ -157,6 +157,36 @@ export const api = {
       headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch campaign rolls');
-    return response.json();
+    return safeJson(response);
+  },
+
+  createAttack: async (characterId: number, data: any) => {
+    const response = await fetch(`${API_URL}/characters/${characterId}/attacks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await safeJson(response);
+    if (!response.ok) throw new Error(result.error || 'Failed to create attack');
+    return result;
+  },
+
+  updateAttack: async (attackId: number, data: any) => {
+    const response = await fetch(`${API_URL}/attacks/${attackId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update attack');
+    return safeJson(response);
+  },
+
+  deleteAttack: async (attackId: number) => {
+    const response = await fetch(`${API_URL}/attacks/${attackId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete attack');
+    return safeJson(response);
   },
 };

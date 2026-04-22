@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\DiceRollRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: DiceRollRepository::class)]
@@ -36,16 +34,9 @@ class DiceRoll
     #[ORM\JoinColumn(nullable: false)]
     private ?Campaign $campaign = null;
 
-    /**
-     * @var Collection<int, Attack>
-     */
-    #[ORM\OneToMany(targetEntity: Attack::class, mappedBy: 'rolls_id')]
-    private Collection $attacks_id;
-
-    public function __construct()
-    {
-        $this->attacks_id = new ArrayCollection();
-    }
+    #[ORM\ManyToOne(inversedBy: 'diceRolls')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Attack $attack = null;
 
     public function getId(): ?int
     {
@@ -124,32 +115,14 @@ class DiceRoll
         return $this;
     }
 
-    /**
-     * @return Collection<int, Attack>
-     */
-    public function getAttacksId(): Collection
+    public function getAttack(): ?Attack
     {
-        return $this->attacks_id;
+        return $this->attack;
     }
 
-    public function addAttacksId(Attack $attacksId): static
+    public function setAttack(?Attack $attack): static
     {
-        if (!$this->attacks_id->contains($attacksId)) {
-            $this->attacks_id->add($attacksId);
-            $attacksId->setRollsId($this);
-        }
-
-        return $this;
-    }
-
-    public function removeAttacksId(Attack $attacksId): static
-    {
-        if ($this->attacks_id->removeElement($attacksId)) {
-            // set the owning side to null (unless already changed)
-            if ($attacksId->getRollsId() === $this) {
-                $attacksId->setRollsId(null);
-            }
-        }
+        $this->attack = $attack;
 
         return $this;
     }

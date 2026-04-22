@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\AttackRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AttackRepository::class)]
@@ -19,8 +21,14 @@ class Attack
     #[ORM\Column]
     private ?int $Modifier = null;
 
+    #[ORM\Column]
+    private ?bool $proficiencyBonus = false;
+
     #[ORM\Column(length: 255)]
     private ?string $Damage = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $description = null;
 
     #[ORM\ManyToOne(inversedBy: 'attacks')]
     private ?Character $Attacks = null;
@@ -28,8 +36,16 @@ class Attack
     #[ORM\ManyToOne(inversedBy: 'attacks')]
     private ?Characteristic $RelatedCharacteristic = null;
 
-    #[ORM\ManyToOne(inversedBy: 'attacks_id')]
-    private ?DiceRoll $rolls_id = null;
+    /**
+     * @var Collection<int, DiceRoll>
+     */
+    #[ORM\OneToMany(targetEntity: DiceRoll::class, mappedBy: 'attack')]
+    private Collection $diceRolls;
+
+    public function __construct()
+    {
+        $this->diceRolls = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -60,6 +76,18 @@ class Attack
         return $this;
     }
 
+    public function getProficiencyBonus(): ?bool
+    {
+        return $this->proficiencyBonus;
+    }
+
+    public function setProficiencyBonus(bool $proficiencyBonus): static
+    {
+        $this->proficiencyBonus = $proficiencyBonus;
+
+        return $this;
+    }
+
     public function getDamage(): ?string
     {
         return $this->Damage;
@@ -68,6 +96,18 @@ class Attack
     public function setDamage(string $Damage): static
     {
         $this->Damage = $Damage;
+
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
 
         return $this;
     }
@@ -96,14 +136,31 @@ class Attack
         return $this;
     }
 
-    public function getRollsId(): ?DiceRoll
+    /**
+     * @return Collection<int, DiceRoll>
+     */
+    public function getDiceRolls(): Collection
     {
-        return $this->rolls_id;
+        return $this->diceRolls;
     }
 
-    public function setRollsId(?DiceRoll $rolls_id): static
+    public function addDiceRoll(DiceRoll $diceRoll): static
     {
-        $this->rolls_id = $rolls_id;
+        if (!$this->diceRolls->contains($diceRoll)) {
+            $this->diceRolls->add($diceRoll);
+            $diceRoll->setAttack($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDiceRoll(DiceRoll $diceRoll): static
+    {
+        if ($this->diceRolls->removeElement($diceRoll)) {
+            if ($diceRoll->getAttack() === $this) {
+                $diceRoll->setAttack(null);
+            }
+        }
 
         return $this;
     }

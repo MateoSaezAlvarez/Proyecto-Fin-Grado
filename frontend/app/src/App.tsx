@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import CreateCharacter from './pages/CreateCharacter';
+import CreateAttack from './pages/CreateAttack';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CharacterSheet from './pages/CharacterSheet';
@@ -25,6 +26,7 @@ const App = () => {
           <Route path="/campaign/:id" element={<CampaignDetail />} />
           <Route path="/character/:id" element={<CharacterSheet />} />
           <Route path="/campaign/:id/create-character" element={<CreateCharacter />} />
+          <Route path="/character/:characterId/create-attack" element={<CreateAttack />} />
         </Route>
 
         {/* Default Redirect */}

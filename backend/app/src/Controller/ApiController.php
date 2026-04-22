@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Ability;
+use App\Entity\Attack;
 use App\Entity\Campaign;
 use App\Entity\Character;
 use App\Entity\Characteristic;
@@ -451,6 +452,7 @@ class ApiController extends AbstractController
         $campaignId = $data['campaignId'] ?? null;
         $abilityId = $data['abilityId'] ?? null;
         $characteristicId = $data['characteristicId'] ?? null;
+        $attackId = $data['attackId'] ?? null;
         $rollValue = $data['rollValue'] ?? 0;
         $dice = $data['dice'] ?? 20;
 
@@ -475,6 +477,11 @@ class ApiController extends AbstractController
             if ($characteristic) $roll->setCharacteristic($characteristic);
         }
 
+        if ($attackId) {
+            $attack = $this->entityManager->getRepository(Attack::class)->find($attackId);
+            if ($attack) $roll->setAttack($attack);
+        }
+
         $this->entityManager->persist($roll);
         $this->entityManager->flush();
 
@@ -495,11 +502,15 @@ class ApiController extends AbstractController
             $rollName      = null;
             $modifier      = null;
 
-            // Resolve the characteristic — either directly or through the ability
+            // Resolve the characteristic — either directly or through the ability or attack
             $stat    = $roll->getCharacteristic();
             $ability = $roll->getAbility();
+            $attack  = $roll->getAttack();
             if (!$stat && $ability) {
                 $stat = $ability->getCharacteristic();
+            }
+            if (!$stat && $attack) {
+                $stat = $attack->getRelatedCharacteristic();
             }
 
             if ($stat) {
@@ -509,7 +520,10 @@ class ApiController extends AbstractController
                 $score         = $stat->getScore() ?? 10;
                 $baseMod       = (int) floor(($score - 10) / 2);
 
-                if ($ability) {
+                if ($attack) {
+                    $rollName = $attack->getName();
+                    $modifier = $baseMod + ($attack->getProficiencyBonus() ? $profBonus : 0) + $attack->getModifier();
+                } elseif ($ability) {
                     // ── Skill check ────────────────────────────────────────
                     $rollName = $ability->getDescription();
                     $modifier = $baseMod + ($ability->isProficient() ? $profBonus : 0);
@@ -549,6 +563,116 @@ class ApiController extends AbstractController
         return $this->json($data);
     }
 
+    #[Route('/characters/{id}/attacks', methods: ['GET'])]
+    public function getCharacterAttacks(Character $character): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        $attacks = [];
+        foreach ($character->getAttacks() as $attack) {
+            $attacks[] = $this->serializeAttack($attack);
+        }
+        return $this->json($attacks);
+    }
+
+    #[Route('/characters/{id}/attacks', methods: ['POST'])]
+    public function createAttack(Character $character, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        $user = $this->getUser();
+
+        $isDm = $character->getCampaign()->getDungeonMaster() === $user;
+        $isOwner = $character->getPlayers() === $user;
+        if (!$isDm && !$isOwner) {
+            return $this->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        $attack = new Attack();
+        $attack->setName($data['name'] ?? 'Ataque');
+        $attack->setDamage($data['damage'] ?? '');
+        $attack->setModifier((int)($data['modifier'] ?? 0));
+        $attack->setProficiencyBonus((bool)($data['proficiencyBonus'] ?? false));
+        $attack->setDescription($data['description'] ?? null);
+        $attack->setAttacks($character);
+
+        if (!empty($data['characteristicId'])) {
+            $characteristic = $this->entityManager->getRepository(Characteristic::class)->find($data['characteristicId']);
+            if ($characteristic) {
+                $attack->setRelatedCharacteristic($characteristic);
+            }
+        }
+
+        $this->entityManager->persist($attack);
+        $this->entityManager->flush();
+
+        return $this->json($this->serializeAttack($attack), 201);
+    }
+
+    #[Route('/attacks/{id}', methods: ['PUT'])]
+    public function updateAttack(Attack $attack, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        $user = $this->getUser();
+
+        $character = $attack->getAttacks();
+        $isDm = $character && $character->getCampaign()->getDungeonMaster() === $user;
+        $isOwner = $character && $character->getPlayers() === $user;
+        if (!$isDm && !$isOwner) {
+            return $this->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['name'])) $attack->setName($data['name']);
+        if (isset($data['damage'])) $attack->setDamage($data['damage']);
+        if (isset($data['modifier'])) $attack->setModifier((int)$data['modifier']);
+        if (isset($data['proficiencyBonus'])) $attack->setProficiencyBonus((bool)$data['proficiencyBonus']);
+        if (array_key_exists('description', $data)) $attack->setDescription($data['description']);
+
+        if (!empty($data['characteristicId'])) {
+            $characteristic = $this->entityManager->getRepository(Characteristic::class)->find($data['characteristicId']);
+            if ($characteristic) $attack->setRelatedCharacteristic($characteristic);
+        } else {
+            $attack->setRelatedCharacteristic(null);
+        }
+
+        $this->entityManager->flush();
+        return $this->json($this->serializeAttack($attack));
+    }
+
+    #[Route('/attacks/{id}', methods: ['DELETE'])]
+    public function deleteAttack(Attack $attack): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        $user = $this->getUser();
+
+        $character = $attack->getAttacks();
+        $isDm = $character && $character->getCampaign()->getDungeonMaster() === $user;
+        $isOwner = $character && $character->getPlayers() === $user;
+        if (!$isDm && !$isOwner) {
+            return $this->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $this->entityManager->remove($attack);
+        $this->entityManager->flush();
+        return $this->json(['status' => 'deleted']);
+    }
+
+    private function serializeAttack(Attack $attack): array
+    {
+        return [
+            'id'               => $attack->getId(),
+            'name'             => $attack->getName(),
+            'damage'           => $attack->getDamage(),
+            'modifier'         => $attack->getModifier(),
+            'proficiencyBonus' => $attack->getProficiencyBonus(),
+            'description'      => $attack->getDescription(),
+            'characteristicId' => $attack->getRelatedCharacteristic()?->getId(),
+            'characteristicName' => $attack->getRelatedCharacteristic()?->getName(),
+        ];
+    }
+
     private function serializeCharacter(Character $c, ?User $user = null): array
     {
         $stats = [];
@@ -572,6 +696,11 @@ class ApiController extends AbstractController
             ];
         }
 
+        $attacksData = [];
+        foreach ($c->getAttacks() as $attack) {
+            $attacksData[] = $this->serializeAttack($attack);
+        }
+
         return [
             'id' => $c->getId(),
             'name' => $c->getName(),
@@ -589,6 +718,7 @@ class ApiController extends AbstractController
             'isPlayer' => $user && $c->getPlayers() && $c->getPlayers()->getId() === $user->getId(),
             'imageUrl' => "https://images.unsplash.com/photo-1636224213709-668b57731998?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             'characteristics' => $stats,
+            'attacks' => $attacksData,
         ];
     }
 }
