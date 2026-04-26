@@ -521,7 +521,7 @@ const CharacterSheet = () => {
                       color: 'var(--accent-color)', fontWeight: 'bold', cursor: 'pointer'
                     }}
                   >
-                    Impacto: {bonus >= 0 ? '+' : ''}{bonus}
+                    🎲 Impacto: {bonus >= 0 ? '+' : ''}{bonus}
                   </div>
 
                   {/* Delete */}

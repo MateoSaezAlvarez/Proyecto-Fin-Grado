@@ -42,6 +42,10 @@ class Attack
     #[ORM\OneToMany(targetEntity: DiceRoll::class, mappedBy: 'attack')]
     private Collection $diceRolls;
 
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Damage $Damage_Roll = null;
+
     public function __construct()
     {
         $this->diceRolls = new ArrayCollection();
@@ -161,6 +165,18 @@ class Attack
                 $diceRoll->setAttack(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getDamageRoll(): ?Damage
+    {
+        return $this->Damage_Roll;
+    }
+
+    public function setDamageRoll(Damage $Damage_Roll): static
+    {
+        $this->Damage_Roll = $Damage_Roll;
 
         return $this;
     }

@@ -38,6 +38,15 @@ class DiceRoll
     #[ORM\JoinColumn(nullable: true)]
     private ?Attack $attack = null;
 
+    #[ORM\OneToOne(targetEntity: self::class, inversedBy: 'DamageDiceRoll', cascade: ['persist', 'remove'])]
+    private ?self $Damage_Roll = null;
+
+    #[ORM\OneToOne(targetEntity: self::class, mappedBy: 'Damage_Roll', cascade: ['persist', 'remove'])]
+    private ?self $DamageDiceRoll = null;
+
+    #[ORM\ManyToOne]
+    private ?Damage $Damage = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -123,6 +132,52 @@ class DiceRoll
     public function setAttack(?Attack $attack): static
     {
         $this->attack = $attack;
+
+        return $this;
+    }
+
+    public function getDamageRoll(): ?self
+    {
+        return $this->Damage_Roll;
+    }
+
+    public function setDamageRoll(?self $Damage_Roll): static
+    {
+        $this->Damage_Roll = $Damage_Roll;
+
+        return $this;
+    }
+
+    public function getDamageDiceRoll(): ?self
+    {
+        return $this->DamageDiceRoll;
+    }
+
+    public function setDamageDiceRoll(?self $DamageDiceRoll): static
+    {
+        // unset the owning side of the relation if necessary
+        if ($DamageDiceRoll === null && $this->DamageDiceRoll !== null) {
+            $this->DamageDiceRoll->setDamageRoll(null);
+        }
+
+        // set the owning side of the relation if necessary
+        if ($DamageDiceRoll !== null && $DamageDiceRoll->getDamageRoll() !== $this) {
+            $DamageDiceRoll->setDamageRoll($this);
+        }
+
+        $this->DamageDiceRoll = $DamageDiceRoll;
+
+        return $this;
+    }
+
+    public function getDamage(): ?Damage
+    {
+        return $this->Damage;
+    }
+
+    public function setDamage(?Damage $Damage): static
+    {
+        $this->Damage = $Damage;
 
         return $this;
     }

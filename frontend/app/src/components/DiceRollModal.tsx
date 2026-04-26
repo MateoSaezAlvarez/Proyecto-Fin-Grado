@@ -9,7 +9,7 @@ interface DiceRollModalProps {
   total: number;
 }
 
-const DiceRollModal: React.FC<DiceRollModalProps> = ({ isOpen, onClose, rollName, baseRoll, modifier, total }) => {
+const DiceRollModal: React.FC<DiceRollModalProps> = ({isOpen, onClose, rollName, baseRoll, modifier, total} : DiceRollModalProps) => {
   if (!isOpen) return null;
 
   return (
