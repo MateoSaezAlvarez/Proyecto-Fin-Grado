@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import DiceRollModal from '../components/DiceRollModal';
+import DamageRollModal from '../components/DamageRollModal';
 
 const STAT_LABELS: Record<string, string> = {
   Strength: 'Fuerza',
@@ -22,7 +23,8 @@ const CharacterSheet = () => {
 
   // Dice Roll State
   const [isRollModalOpen, setIsRollModalOpen] = useState(false);
-  const [rollData, setRollData] = useState({ name: '', baseRoll: 0, modifier: 0, total: 0 });
+  const [isDamageModalOpen, setIsDamageModalOpen] = useState(false);
+  const [rollData, setRollData] = useState<any>({ name: '', baseRoll: 0, modifier: 0, total: 0, damageRoll: null });
 
   // Attack editing state: attackId -> partial data being edited
   const [editingAttacks, setEditingAttacks] = useState<Record<number, any>>({});
@@ -101,23 +103,93 @@ const CharacterSheet = () => {
 
   const calculateModifier = (score: number) => Math.floor((score - 10) / 2);
 
-  const handleRoll = async (name: string, modifier: number, abilityId?: number, characteristicId?: number, attackId?: number) => {
-    const baseRoll = Math.floor(Math.random() * 20) + 1;
+  const handleRoll = async (name: string, modifier: number, abilityId?: number, characteristicId?: number, attackId?: number, isDamage = false, dice = 20, parentRollId?: number, damageId?: number) => {
+    const baseRoll = Math.floor(Math.random() * dice) + 1;
     const total = baseRoll + modifier;
-    setRollData({ name, baseRoll, modifier, total });
-    setIsRollModalOpen(true);
+    
+    if (isDamage) {
+        if (parentRollId) {
+            // Linked damage roll (after an attack) - remains in the DiceRollModal
+            setRollData((prev: any) => ({
+                ...prev,
+                damageRoll: { total, baseRoll, modifier, dice }
+            }));
+            setIsRollModalOpen(true);
+        } else {
+            // Standalone damage roll - use the new DamageRollModal
+            setRollData({ 
+                name: name, 
+                baseRoll, 
+                modifier, 
+                total, 
+                dice,
+                attackId,
+                id: null,
+                damageRoll: null 
+            });
+            setIsDamageModalOpen(true);
+            setIsRollModalOpen(false);
+        }
+    } else {
+        // New attack roll
+        setRollData({ name, baseRoll, modifier, total, damageRoll: null, attackId });
+        setIsRollModalOpen(true);
+        setIsDamageModalOpen(false);
+    }
+
     try {
-      await api.submitRoll({
+      const response = await api.submitRoll({
         campaignId: character.campaign.id,
         abilityId,
         characteristicId,
         attackId,
+        damageId,
+        parentRollId,
         rollValue: total,
-        dice: 20
+        dice: dice
       });
+      return response.id;
     } catch (err) {
       console.error('Failed to upload roll', err);
     }
+  };
+
+  const handleAttackRoll = async (attack: any) => {
+      const bonus = getAttackBonus(attack);
+      const rollId = await handleRoll(attack.name, bonus, undefined, undefined, attack.id);
+      
+      setRollData((prev: any) => ({ ...prev, id: rollId, attackId: attack.id }));
+  };
+
+  const handleDamageRoll = async (attack: any, parentRollId?: number) => {
+      
+      let info = attack.damageDetail;
+      
+      // Smart Fallback: If detail is missing, try to parse the string "1d8 + 2"
+      if (!info && attack.damage) {
+          console.log('Attempting to parse legacy damage string:', attack.damage);
+          const match = attack.damage.match(/(\d+)d(\d+)(?:\s*\+\s*(\d+))?/i);
+          if (match) {
+              info = {
+                  dice: parseInt(match[2], 10),
+                  flatModifier: match[3] ? parseInt(match[3], 10) : 0,
+                  characteristicId: null
+              };
+              console.log('Parsed fallback info:', info);
+          }
+      }
+
+      if (!info) {
+          console.error('CRITICAL: No damage info found or parsable for attack:', attack);
+          alert("Este ataque no tiene configuración de dados. Por favor, edítalo o crea uno nuevo.");
+          return;
+      }
+      
+      const statMod = info.characteristicId ? calculateModifier(character.characteristics.find((s: any) => s.id === info.characteristicId)?.score ?? 10) : 0;
+      const totalMod = statMod + (info.flatModifier || 0);
+      
+      console.log('Calculating roll with dice:', info.dice, 'and total modifier:', totalMod);
+      await handleRoll('Daño', totalMod, undefined, undefined, attack.id, true, info.dice, parentRollId, info.id);
   };
 
   /* ─── Attack helpers ─── */
@@ -153,7 +225,12 @@ const CharacterSheet = () => {
       attacks: prev.attacks.map((a: any) => a.id === attackId ? { ...a, ...payload } : a)
     }));
     try {
-      await api.updateAttack(attackId, payload);
+      const updated = await api.updateAttack(attackId, payload);
+      // Update with server response (contains full damageInfo)
+      setCharacter((prev: any) => ({
+        ...prev,
+        attacks: prev.attacks.map((a: any) => a.id === attackId ? updated : a)
+      }));
     } catch (err) {
       console.error('Failed to save attack', err);
     }
@@ -161,14 +238,16 @@ const CharacterSheet = () => {
 
   const deleteAttack = async (attackId: number) => {
     if (!window.confirm('¿Eliminar este ataque?')) return;
-    setCharacter((prev: any) => ({
-      ...prev,
-      attacks: prev.attacks.filter((a: any) => a.id !== attackId)
-    }));
+    console.log('Deleting attack:', attackId);
     try {
       await api.deleteAttack(attackId);
+      setCharacter((prev: any) => ({
+        ...prev,
+        attacks: prev.attacks.filter((a: any) => a.id !== attackId)
+      }));
     } catch (err) {
       console.error('Failed to delete attack', err);
+      alert('Error al eliminar el ataque de la base de datos.');
     }
   };
 
@@ -495,14 +574,25 @@ const CharacterSheet = () => {
                 className="card"
                 style={{ marginBottom: '1rem', cursor: 'default', position: 'relative' }}
               >
-                {/* Row 1: Name + bonus badge */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.8rem' }}>
+                {/* Row 1: Name + Actions */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '1rem', 
+                  marginBottom: '1rem', 
+                  borderBottom: '1px solid var(--border-color)', 
+                  paddingBottom: '0.8rem' 
+                }}>
                   <input
                     value={edit.name}
                     onChange={e => patchAttackEdit(attack.id, { name: e.target.value })}
                     style={{
                       ...inlineInputStyle,
-                      fontSize: '1.2rem', fontWeight: 'bold', flex: 1,
+                      fontSize: '1.2rem', 
+                      fontWeight: 'bold', 
+                      flex: 1,
+                      color: 'var(--accent-color)'
                     }}
                     onFocus={e => e.target.style.borderBottom = '1px solid var(--accent-color)'}
                     onBlur={e => {
@@ -511,33 +601,61 @@ const CharacterSheet = () => {
                     }}
                   />
 
-                  {/* Hit badge */}
-                  <div 
-                    title="Click para tirar impacto"
-                    onClick={() => handleRoll(edit.name, bonus, undefined, undefined, attack.id)}
-                    style={{
-                      background: 'rgba(255,255,255,0.08)', borderRadius: '8px',
-                      padding: '0.3rem 0.8rem', fontSize: '0.9rem', whiteSpace: 'nowrap',
-                      color: 'var(--accent-color)', fontWeight: 'bold', cursor: 'pointer'
-                    }}
-                  >
-                    🎲 Impacto: {bonus >= 0 ? '+' : ''}{bonus}
-                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {/* Hit Button */}
+                    <button 
+                      onClick={() => handleAttackRoll(attack)}
+                      className="btn-primary"
+                      style={{ 
+                        padding: '0.4rem 0.8rem', 
+                        fontSize: '0.85rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.4rem',
+                        background: 'rgba(168, 85, 247, 0.2)',
+                        border: '1px solid var(--accent-color)',
+                        color: 'var(--accent-color)'
+                      }}
+                    >
+                      🎲 Impacto ({bonus >= 0 ? '+' : ''}{bonus})
+                    </button>
 
-                  {/* Delete */}
-                  <button
-                    onClick={() => deleteAttack(attack.id)}
-                    title="Eliminar ataque"
-                    style={{
-                      background: 'transparent', border: 'none', color: 'var(--error-color)',
-                      cursor: 'pointer', fontSize: '1.1rem', opacity: 0.6, padding: '0.2rem 0.4rem',
-                      transition: 'opacity 0.15s'
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
-                  >
-                    ✕
-                  </button>
+                    {/* Damage Button */}
+                    <button 
+                      onClick={() => handleDamageRoll(attack)}
+                      className="btn-primary"
+                      style={{ 
+                        padding: '0.4rem 0.8rem', 
+                        fontSize: '0.85rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.4rem',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid var(--success-color)',
+                        color: 'var(--success-color)'
+                      }}
+                    >
+                      💥 Daño
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteAttack(attack.id); }}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.1)', 
+                        border: '1px solid var(--error-color)', 
+                        color: 'var(--error-color)',
+                        cursor: 'pointer', 
+                        borderRadius: '6px',
+                        padding: '0.4rem 0.6rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
                 {/* Row 2: Damage + stat + proficiency + flat mod */}
@@ -546,17 +664,47 @@ const CharacterSheet = () => {
                   {/* Damage */}
                   <div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.2rem' }}>Daño</div>
-                    <input
-                      value={edit.damage}
-                      onChange={e => patchAttackEdit(attack.id, { damage: e.target.value })}
-                      onFocus={e => e.target.style.borderBottom = '1px solid var(--accent-color)'}
-                      onBlur={e => {
-                        e.target.style.borderBottom = '1px solid transparent';
-                        if (editingAttacks[attack.id]) saveAttack(attack.id);
-                      }}
-                      style={{ ...inlineInputStyle, fontSize: '1rem' }}
-                      placeholder="1d8+3"
-                    />
+                    {attack.damageDetail ? (
+                        <div 
+                          onClick={() => handleDamageRoll(attack)}
+                          style={{ 
+                            padding: '0.4rem 0.8rem', 
+                            background: 'rgba(255,255,255,0.05)', 
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '1rem',
+                            border: '1px solid var(--border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                        >
+                            <span>
+                                1d{attack.damageDetail.dice} + {
+                                    attack.damageDetail.characteristicName ? 
+                                    STAT_LABELS[attack.damageDetail.characteristicName] ?? attack.damageDetail.characteristicName : 
+                                    ''
+                                } ({attack.damageDetail.flatModifier >= 0 ? '+' : ''}{attack.damageDetail.flatModifier})
+                            </span>
+                            <span style={{ color: 'var(--success-color)', fontSize: '1.1rem' }}>🎲</span>
+                        </div>
+                    ) : (
+                        <input
+                          value={edit.damage}
+                          onChange={e => patchAttackEdit(attack.id, { damage: e.target.value })}
+                          onFocus={e => e.target.style.borderBottom = '1px solid var(--accent-color)'}
+                          onBlur={e => {
+                            e.target.style.borderBottom = '1px solid transparent';
+                            if (editingAttacks[attack.id]) saveAttack(attack.id);
+                          }}
+                          style={{ ...inlineInputStyle, fontSize: '1rem' }}
+                          placeholder="1d8+3"
+                        />
+                    )}
                   </div>
 
                   {/* Stat */}
@@ -686,6 +834,22 @@ const CharacterSheet = () => {
         baseRoll={rollData.baseRoll}
         modifier={rollData.modifier}
         total={rollData.total}
+        damageRoll={rollData.damageRoll}
+        onRollDamage={
+            rollData.attackId && character.attacks.find((a: any) => a.id === rollData.attackId)?.damageInfo 
+            ? () => handleDamageRoll(character.attacks.find((a: any) => a.id === rollData.attackId), rollData.id)
+            : undefined
+        }
+      />
+
+      <DamageRollModal
+        isOpen={isDamageModalOpen}
+        onClose={() => setIsDamageModalOpen(false)}
+        rollName={rollData.name}
+        baseRoll={rollData.baseRoll}
+        modifier={rollData.modifier}
+        total={rollData.total}
+        dice={rollData.dice}
       />
 
     </main>

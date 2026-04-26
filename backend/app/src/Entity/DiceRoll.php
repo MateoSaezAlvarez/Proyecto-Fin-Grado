@@ -34,8 +34,8 @@ class DiceRoll
     #[ORM\JoinColumn(nullable: false)]
     private ?Campaign $campaign = null;
 
-    #[ORM\ManyToOne(inversedBy: 'diceRolls')]
-    #[ORM\JoinColumn(nullable: true)]
+    #[ORM\ManyToOne(targetEntity: Attack::class, inversedBy: 'diceRolls')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?Attack $attack = null;
 
     #[ORM\OneToOne(targetEntity: self::class, inversedBy: 'DamageDiceRoll', cascade: ['persist', 'remove'])]
@@ -45,6 +45,7 @@ class DiceRoll
     private ?self $DamageDiceRoll = null;
 
     #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?Damage $Damage = null;
 
     public function getId(): ?int

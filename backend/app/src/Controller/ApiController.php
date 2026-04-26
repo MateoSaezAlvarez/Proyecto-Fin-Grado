@@ -8,6 +8,7 @@ use App\Entity\Campaign;
 use App\Entity\Character;
 use App\Entity\Characteristic;
 use App\Entity\DiceRoll;
+use App\Entity\Damage;
 use App\Entity\Status;
 use App\Entity\User;
 use App\Repository\CampaignRepository;
@@ -443,6 +444,115 @@ class ApiController extends AbstractController
         return $this->json(['status' => 'success']);
     }
 
+    #[Route('/rolls/{id}', methods: ['GET'])]
+    public function getRoll(DiceRoll $roll): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+        return $this->json($this->serializeRoll($roll));
+    }
+
+    #[Route('/campaigns/{id}/rolls', methods: ['GET'])]
+    public function getCampaignRolls(Campaign $campaign): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
+
+        $rolls = $this->entityManager->getRepository(DiceRoll::class)
+            ->findBy(['campaign' => $campaign], ['rollDate' => 'DESC'], 30);
+
+        $data = [];
+        foreach ($rolls as $roll) {
+            // Filter out rolls that are 'child' damage rolls (they will be nested in their parent attack roll)
+            if ($roll->getDamageDiceRoll() !== null) {
+                continue;
+            }
+            $data[] = $this->serializeRoll($roll);
+        }
+
+        return $this->json($data);
+    }
+
+    private function serializeRoll(DiceRoll $roll): array
+    {
+        $characterName = null;
+        $rollName      = null;
+        $modifier      = null;
+
+        // Resolve the characteristic — either directly or through the ability or attack
+        $stat    = $roll->getCharacteristic();
+        $ability = $roll->getAbility();
+        $attack  = $roll->getAttack();
+        $damage  = $roll->getDamage();
+
+        if (!$stat && $ability) {
+            $stat = $ability->getCharacteristic();
+        }
+        if (!$stat && $attack) {
+            $stat = $attack->getRelatedCharacteristic();
+        }
+        if (!$stat && $damage) {
+            $stat = $damage->getCharacteristic();
+        }
+
+        $rollType = 'Habilidad';
+        if ($stat) {
+            $character     = $stat->getCharacter();
+            $characterName = $character?->getName();
+            $profBonus     = $character?->getProficiencyBonus() ?? 2;
+            $score         = $stat->getScore() ?? 10;
+            $baseMod       = (int) floor(($score - 10) / 2);
+
+            if ($damage) {
+                $rollType = 'Daño';
+                $rollName = 'Daño';
+                $modifier = $baseMod + $damage->getFlatModifier();
+            } elseif ($attack) {
+                $rollType = 'Ataque';
+                $rollName = $attack->getName();
+                $modifier = $baseMod + ($attack->getProficiencyBonus() ? $profBonus : 0) + $attack->getModifier();
+            } elseif ($ability) {
+                $rollType = 'Habilidad';
+                $rollName = $ability->getDescription();
+                $modifier = $baseMod + ($ability->isProficient() ? $profBonus : 0);
+            } else {
+                // Saving Throw or Characteristic check
+                $total           = $roll->getRollValue();
+                $withProf        = $baseMod + $profBonus;
+                $withoutProf     = $baseMod;
+                $validWithProf   = ($total - $withProf) >= 1 && ($total - $withProf) <= 20;
+                $validWithout    = ($total - $withoutProf) >= 1 && ($total - $withoutProf) <= 20;
+                $isSave          = $stat->isSaveProficient() && $validWithProf && !$validWithout;
+
+                $rollType = $isSave ? 'Salvación' : 'Habilidad';
+                $modifier = $isSave ? $withProf : $withoutProf;
+                $rollName = $isSave
+                    ? 'Salvación de ' . $stat->getName()
+                    : 'Tirada de '    . $stat->getName();
+            }
+        }
+
+        $total    = $roll->getRollValue();
+        $baseRoll = $modifier !== null ? $total - $modifier : null;
+
+        $serialized = [
+            'id'            => $roll->getId(),
+            'characterName' => $characterName,
+            'rollName'      => $rollName,
+            'rollType'      => $rollType,
+            'baseRoll'      => $baseRoll,
+            'modifier'      => $modifier,
+            'total'         => $total,
+            'rollDate'      => $roll->getRollDate()?->format('c'),
+            'dice'          => $roll->getDice(),
+        ];
+
+        // Include nested damage roll if it exists
+        if ($roll->getDamageRoll()) {
+            $serialized['damageRoll'] = $this->serializeRoll($roll->getDamageRoll());
+        }
+
+        return $serialized;
+    }
+
     #[Route('/rolls', methods: ['POST'])]
     public function submitRoll(Request $request): JsonResponse
     {
@@ -453,6 +563,8 @@ class ApiController extends AbstractController
         $abilityId = $data['abilityId'] ?? null;
         $characteristicId = $data['characteristicId'] ?? null;
         $attackId = $data['attackId'] ?? null;
+        $damageId = $data['damageId'] ?? null;
+        $parentRollId = $data['parentRollId'] ?? null;
         $rollValue = $data['rollValue'] ?? 0;
         $dice = $data['dice'] ?? 20;
 
@@ -482,87 +594,22 @@ class ApiController extends AbstractController
             if ($attack) $roll->setAttack($attack);
         }
 
+        if ($damageId) {
+            $damage = $this->entityManager->getRepository(Damage::class)->find($damageId);
+            if ($damage) $roll->setDamage($damage);
+        }
+
+        if ($parentRollId) {
+            $parentRoll = $this->entityManager->getRepository(DiceRoll::class)->find($parentRollId);
+            if ($parentRoll) {
+                $parentRoll->setDamageRoll($roll);
+            }
+        }
+
         $this->entityManager->persist($roll);
         $this->entityManager->flush();
 
         return $this->json(['status' => 'success', 'id' => $roll->getId()]);
-    }
-
-    #[Route('/campaigns/{id}/rolls', methods: ['GET'])]
-    public function getCampaignRolls(Campaign $campaign): JsonResponse
-    {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
-        $rolls = $this->entityManager->getRepository(DiceRoll::class)
-            ->findBy(['campaign' => $campaign], ['rollDate' => 'DESC'], 20);
-
-        $data = [];
-        foreach ($rolls as $roll) {
-            $characterName = null;
-            $rollName      = null;
-            $modifier      = null;
-
-            // Resolve the characteristic — either directly or through the ability or attack
-            $stat    = $roll->getCharacteristic();
-            $ability = $roll->getAbility();
-            $attack  = $roll->getAttack();
-            if (!$stat && $ability) {
-                $stat = $ability->getCharacteristic();
-            }
-            if (!$stat && $attack) {
-                $stat = $attack->getRelatedCharacteristic();
-            }
-
-            $rollType = 'Habilidad';
-            if ($stat) {
-                $character     = $stat->getCharacter();
-                $characterName = $character?->getName();
-                $profBonus     = $character?->getProficiencyBonus() ?? 2;
-                $score         = $stat->getScore() ?? 10;
-                $baseMod       = (int) floor(($score - 10) / 2);
-
-                if ($attack) {
-                    $rollType = 'Ataque';
-                    $rollName = $attack->getName();
-                    $modifier = $baseMod + ($attack->getProficiencyBonus() ? $profBonus : 0) + $attack->getModifier();
-                } elseif ($ability) {
-                    // ── Skill check ────────────────────────────────────────
-                    $rollType = 'Habilidad';
-                    $rollName = $ability->getDescription();
-                    $modifier = $baseMod + ($ability->isProficient() ? $profBonus : 0);
-                } else {
-                    // ── Characteristic check or Saving Throw ───────────────
-                    $total           = $roll->getRollValue();
-                    $withProf        = $baseMod + $profBonus;
-                    $withoutProf     = $baseMod;
-                    $validWithProf   = ($total - $withProf) >= 1 && ($total - $withProf) <= 20;
-                    $validWithout    = ($total - $withoutProf) >= 1 && ($total - $withoutProf) <= 20;
-                    $isSave          = $stat->isSaveProficient() && $validWithProf && !$validWithout;
-
-                    $rollType = $isSave ? 'Salvación' : 'Habilidad';
-                    $modifier = $isSave ? $withProf : $withoutProf;
-                    $rollName = $isSave
-                        ? 'Salvación de ' . $stat->getName()
-                        : 'Tirada de '    . $stat->getName();
-                }
-            }
-
-            $total    = $roll->getRollValue();
-            $baseRoll = $modifier !== null ? $total - $modifier : null;
-
-            $data[] = [
-                'id'            => $roll->getId(),
-                'characterName' => $characterName,
-                'rollName'      => $rollName,
-                'rollType'      => $rollType,
-                'baseRoll'      => $baseRoll,
-                'modifier'      => $modifier,
-                'total'         => $total,
-                'rollDate'      => $roll->getRollDate()?->format('c'),
-            ];
-        }
-
-        return $this->json($data);
     }
 
     #[Route('/characters/{id}/attacks', methods: ['GET'])]
@@ -592,11 +639,32 @@ class ApiController extends AbstractController
 
         $attack = new Attack();
         $attack->setName($data['name'] ?? 'Ataque');
-        $attack->setDamage($data['damage'] ?? '');
         $attack->setModifier((int)($data['modifier'] ?? 0));
         $attack->setProficiencyBonus((bool)($data['proficiencyBonus'] ?? false));
         $attack->setDescription($data['description'] ?? null);
         $attack->setAttacks($character);
+
+        // Handle the new Damage entity
+        if (isset($data['damageDice']) && isset($data['damageCharacteristicId'])) {
+            $damage = new Damage();
+            $damage->setDice((int)$data['damageDice']);
+            $damage->setFlatModifier((int)($data['damageModifier'] ?? 0));
+            
+            if (!empty($data['damageCharacteristicId'])) {
+                $damageChar = $this->entityManager->getRepository(Characteristic::class)->find((int)$data['damageCharacteristicId']);
+                if ($damageChar) {
+                    $damage->setCharacteristic($damageChar);
+                }
+            }
+            
+            $this->entityManager->persist($damage);
+            $attack->setDamageRoll($damage);
+            
+            // Legacy support for plain text damage field
+            $attack->setDamage("1d" . $data['damageDice'] . " + " . ($data['damageModifier'] ?? 0));
+        } else {
+             $attack->setDamage($data['damage'] ?? '');
+        }
 
         if (!empty($data['characteristicId'])) {
             $characteristic = $this->entityManager->getRepository(Characteristic::class)->find($data['characteristicId']);
@@ -627,10 +695,34 @@ class ApiController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         if (isset($data['name'])) $attack->setName($data['name']);
-        if (isset($data['damage'])) $attack->setDamage($data['damage']);
         if (isset($data['modifier'])) $attack->setModifier((int)$data['modifier']);
         if (isset($data['proficiencyBonus'])) $attack->setProficiencyBonus((bool)$data['proficiencyBonus']);
         if (array_key_exists('description', $data)) $attack->setDescription($data['description']);
+
+        // Update Damage entity
+        if (isset($data['damageDice'])) {
+            $damage = $attack->getDamageRoll();
+            if (!$damage) {
+                $damage = new Damage();
+                $attack->setDamageRoll($damage);
+            }
+            $damage->setDice((int)$data['damageDice']);
+            $damage->setFlatModifier((int)($data['damageModifier'] ?? 0));
+            
+            if (!empty($data['damageCharacteristicId'])) {
+                $damageChar = $this->entityManager->getRepository(Characteristic::class)->find($data['damageCharacteristicId']);
+                if ($damageChar) {
+                    $damage->setCharacteristic($damageChar);
+                }
+            } else {
+                $damage->setCharacteristic(null);
+            }
+            
+            $this->entityManager->persist($damage);
+            $attack->setDamage("1d" . $data['damageDice'] . " + " . ($data['damageModifier'] ?? 0));
+        } elseif (isset($data['damage'])) {
+            $attack->setDamage($data['damage']);
+        }
 
         if (!empty($data['characteristicId'])) {
             $characteristic = $this->entityManager->getRepository(Characteristic::class)->find($data['characteristicId']);
@@ -663,6 +755,18 @@ class ApiController extends AbstractController
 
     private function serializeAttack(Attack $attack): array
     {
+        $damageData = null;
+        if ($attack->getDamageRoll()) {
+            $damage = $attack->getDamageRoll();
+            $damageData = [
+                'id' => $damage->getId(),
+                'dice' => $damage->getDice(),
+                'flatModifier' => $damage->getFlatModifier(),
+                'characteristicId' => $damage->getCharacteristic()?->getId(),
+                'characteristicName' => $damage->getCharacteristic()?->getName(),
+            ];
+        }
+
         return [
             'id'               => $attack->getId(),
             'name'             => $attack->getName(),
@@ -672,6 +776,7 @@ class ApiController extends AbstractController
             'description'      => $attack->getDescription(),
             'characteristicId' => $attack->getRelatedCharacteristic()?->getId(),
             'characteristicName' => $attack->getRelatedCharacteristic()?->getName(),
+            'damageDetail'     => $damageData,
         ];
     }
 

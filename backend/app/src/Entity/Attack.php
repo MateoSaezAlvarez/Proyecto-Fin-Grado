@@ -39,11 +39,11 @@ class Attack
     /**
      * @var Collection<int, DiceRoll>
      */
-    #[ORM\OneToMany(targetEntity: DiceRoll::class, mappedBy: 'attack')]
+    #[ORM\OneToMany(targetEntity: DiceRoll::class, mappedBy: 'attack', cascade: ['remove'], orphanRemoval: true)]
     private Collection $diceRolls;
 
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Damage $Damage_Roll = null;
 
     public function __construct()

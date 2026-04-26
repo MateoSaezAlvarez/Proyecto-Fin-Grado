@@ -8,7 +8,7 @@ const STAT_LABELS: Record<string, string> = {
   Constitution: 'Constitución',
   Intelligence: 'Inteligencia',
   Wisdom: 'Sabiduría',
-  Charisma: 'Carisma',
+  Charisma: 'Charisma',
 };
 
 const CreateAttack = () => {
@@ -21,17 +21,29 @@ const CreateAttack = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    damage: '',
+    damageDice: '8',          // default to d8
+    damageCharacteristicId: '',
+    damageModifier: 0,
     description: '',
-    characteristicId: '',   // selected stat id
+    characteristicId: '',     // attack characteristic
     proficiencyBonus: false,
-    modifier: 0,            // flat bonus (raw number, no calculated mod)
+    modifier: 0,              // attack modifier
   });
 
   useEffect(() => {
     if (!characterId) return;
     api.getCharacter(parseInt(characterId, 10))
-      .then(setCharacter)
+      .then((char) => {
+        setCharacter(char);
+        // Default damage stat to Strength or first available
+        if (char.characteristics && char.characteristics.length > 0) {
+            setFormData(prev => ({ 
+                ...prev, 
+                damageCharacteristicId: String(char.characteristics[0].id),
+                characteristicId: String(char.characteristics[0].id) 
+            }));
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [characterId]);
@@ -56,7 +68,9 @@ const CreateAttack = () => {
     try {
       await api.createAttack(parseInt(characterId, 10), {
         name: formData.name,
-        damage: formData.damage,
+        damageDice: parseInt(formData.damageDice, 10),
+        damageModifier: formData.damageModifier,
+        damageCharacteristicId: formData.damageCharacteristicId ? parseInt(formData.damageCharacteristicId, 10) : null,
         description: formData.description,
         characteristicId: formData.characteristicId ? parseInt(formData.characteristicId, 10) : null,
         proficiencyBonus: formData.proficiencyBonus,
@@ -153,7 +167,6 @@ const CreateAttack = () => {
             Bonificador de impacto
           </h3>
 
-          {/* Stat dropdown */}
           <div style={{ marginBottom: '1rem' }}>
             <label style={labelStyle}>Característica asociada</label>
             <select
@@ -173,7 +186,6 @@ const CreateAttack = () => {
             </select>
           </div>
 
-          {/* Proficiency checkbox */}
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', marginBottom: '1rem', userSelect: 'none' }}>
             <div
               onClick={() => setFormData(p => ({ ...p, proficiencyBonus: !p.proficiencyBonus }))}
@@ -196,7 +208,6 @@ const CreateAttack = () => {
             </span>
           </label>
 
-          {/* Flat modifier counter */}
           <div>
             <label style={labelStyle}>Modificador adicional</label>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
@@ -224,7 +235,6 @@ const CreateAttack = () => {
             </div>
           </div>
 
-          {/* Preview */}
           <div style={{
             marginTop: '1rem', padding: '0.6rem 1rem', background: 'rgba(255,255,255,0.04)',
             borderRadius: '8px', borderLeft: '3px solid var(--accent-color)',
@@ -237,16 +247,73 @@ const CreateAttack = () => {
           </div>
         </div>
 
-        {/* Damage */}
+        {/* Damage section */}
         <div style={cardStyle}>
-          <label style={labelStyle}>Daño *</label>
-          <input
-            required
-            value={formData.damage}
-            onChange={e => setFormData(p => ({ ...p, damage: e.target.value }))}
-            placeholder="Ej: 1d8+3, 2d6, 3d6 de fuego…"
-            style={inputStyle}
-          />
+          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Cálculo de Daño
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={labelStyle}>Dado de daño</label>
+              <select
+                value={formData.damageDice}
+                onChange={e => setFormData(p => ({ ...p, damageDice: e.target.value }))}
+                style={inputStyle}
+              >
+                <option value="4">1d4</option>
+                <option value="6">1d6</option>
+                <option value="8">1d8</option>
+                <option value="10">1d10</option>
+                <option value="12">1d12</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Característica</label>
+              <select
+                value={formData.damageCharacteristicId}
+                onChange={e => setFormData(p => ({ ...p, damageCharacteristicId: e.target.value }))}
+                style={inputStyle}
+              >
+                <option value="">— Ninguna —</option>
+                {character.characteristics.map((stat: any) => {
+                  const mod = calculateModifier(stat.score);
+                  return (
+                    <option key={stat.id} value={stat.id}>
+                      {STAT_LABELS[stat.name] ?? stat.name} ({mod >= 0 ? '+' : ''}{mod})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Modificador de daño extra</label>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <button
+                type="button"
+                onClick={() => setFormData(p => ({ ...p, damageModifier: p.damageModifier - 1 }))}
+                style={{
+                  background: 'transparent', border: 'none', color: 'var(--error-color)',
+                  fontSize: '1.4rem', cursor: 'pointer', padding: '0.2rem 0.7rem',
+                  fontWeight: 'bold', lineHeight: 1
+                }}
+              >−</button>
+              <span style={{ minWidth: '2.5rem', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                {formData.damageModifier}
+              </span>
+              <button
+                type="button"
+                onClick={() => setFormData(p => ({ ...p, damageModifier: p.damageModifier + 1 }))}
+                style={{
+                  background: 'transparent', border: 'none', color: 'var(--success-color)',
+                  fontSize: '1.4rem', cursor: 'pointer', padding: '0.2rem 0.7rem',
+                  fontWeight: 'bold', lineHeight: 1
+                }}
+              >+</button>
+            </div>
+          </div>
         </div>
 
         {/* Description */}
