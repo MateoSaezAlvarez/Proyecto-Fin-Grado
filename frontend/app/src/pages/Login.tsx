@@ -15,7 +15,7 @@ const Login = () => {
       setAuthToken(data.token);
       navigate('/dashboard');
     } catch (err: any) {
-      setError('Invalid credentials');
+      setError('Credenciales inválidos');
     }
   };
 
@@ -40,7 +40,7 @@ const Login = () => {
             <input 
               type="text" 
               className="input-field" 
-              value={username} 
+              placeholder={username} 
               onChange={(e) => setUsername(e.target.value)} 
               required
             />
@@ -51,7 +51,7 @@ const Login = () => {
             <input 
               type="password" 
               className="input-field" 
-              value={password} 
+              placeholder={password} 
               onChange={(e) => setPassword(e.target.value)}
               required
             />

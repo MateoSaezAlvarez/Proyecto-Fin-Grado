@@ -374,7 +374,7 @@ const CharacterSheet = () => {
               borderRadius: '12px', padding: '0.3rem 0.6rem',
               border: '1px solid var(--border-color)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
             }}>
-              <button onClick={() => setCurrentHp(prev => Math.max(0, prev - 1))} style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', fontSize: '1.2rem', cursor: 'pointer', padding: '0 0.4rem', fontWeight: 'bold' }}>−</button>
+              <button onClick={() => setCurrentHp(prev => Math.max(0, prev - 1))} style={{ background: 'transparent', border: 'none', color: 'red', fontSize: '1.2rem', cursor: 'pointer', padding: '0 0.4rem', fontWeight: 'bold' }}>−</button>
               <input
                 type="number" value={currentHp}
                 onChange={(e) => setCurrentHp(parseInt(e.target.value) || 0)}
@@ -768,7 +768,7 @@ const CharacterSheet = () => {
                           patchAttackEdit(attack.id, { modifier: (edit.modifier ?? 0) - 1 });
                           setTimeout(() => saveAttack(attack.id), 0);
                         }}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--error-color)', fontSize: '1.1rem', cursor: 'pointer', padding: '0.1rem 0.5rem', fontWeight: 'bold', lineHeight: 1 }}
+                        style={{ background: 'transparent', border: 'none', color: 'red', fontSize: '1.1rem', cursor: 'pointer', padding: '0.1rem 0.5rem', fontWeight: 'bold', lineHeight: 1 }}
                       >−</button>
                       <span style={{ minWidth: '2rem', textAlign: 'center', fontWeight: 'bold' }}>{edit.modifier ?? 0}</span>
                       <button

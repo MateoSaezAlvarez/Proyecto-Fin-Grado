@@ -12,15 +12,15 @@ const Register = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Las contraseñas no coinciden');
       return;
     }
 
     try {
       await api.register({ username, password });
-      navigate('/login');
+      navigate('/dashboard');
     } catch (err: any) {
-      setError('Registration failed. Username may be taken.');
+      setError('El usuario ya existe');
     }
   };
 

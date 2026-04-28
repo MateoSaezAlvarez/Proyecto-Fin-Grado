@@ -215,7 +215,7 @@ const CreateAttack = () => {
                 type="button"
                 onClick={() => setFormData(p => ({ ...p, modifier: p.modifier - 1 }))}
                 style={{
-                  background: 'transparent', border: 'none', color: 'var(--error-color)',
+                  background: 'transparent', border: 'none', color: 'red',
                   fontSize: '1.4rem', cursor: 'pointer', padding: '0.2rem 0.7rem',
                   fontWeight: 'bold', lineHeight: 1
                 }}

@@ -115,10 +115,10 @@ const Dashboard = () => {
                 ) : (
                     <>
                     <button className="btn-primary" onClick={handleCreateNewGame}>
-                        Crear nueva campaña
+                        Crear Nueva Campaña
                     </button>
                     <button className="btn-primary" onClick={handleLogout} style={{ backgroundColor: 'var(--danger-color)' }}>
-                        Cerrar sesión
+                        Cerrar Sesión
                     </button>
                     </>
                 )}
