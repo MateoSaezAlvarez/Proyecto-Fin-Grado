@@ -36,4 +36,8 @@ RUN mkdir -p var/cache var/log config/jwt && \
     chown -R www-data:www-data var/ config/jwt && \
     chmod -R 775 var/
 
+# Generamos las llaves JWT automáticamente durante la compilación
+# Usamos el parámetro --overwrite para que no falle si ya existen
+RUN php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
+
 EXPOSE 8080
