@@ -35,8 +35,9 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache mod_rewrite (needed by Symfony's front controller)
 RUN a2enmod rewrite
 
-# Solución definitiva para el error de MPM: Borramos el archivo de configuración del módulo event
-RUN rm /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_event.load || true
+# Solución definitiva para el error de MPM:
+RUN a2dismod mpm_event mpm_worker || true
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* || true
 RUN a2enmod mpm_prefork
 
 # Change Apache to listen on 8080 (only ports.conf needs changing)
