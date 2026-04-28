@@ -35,8 +35,9 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache mod_rewrite (needed by Symfony's front controller)
 RUN a2enmod rewrite
 
-# Fix: Prevent "More than one MPM loaded" error
-RUN a2dismod mpm_event && a2enmod mpm_prefork
+# Solución definitiva para el error de MPM: Borramos el archivo de configuración del módulo event
+RUN rm /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_event.load || true
+RUN a2enmod mpm_prefork
 
 # Change Apache to listen on 8080 (only ports.conf needs changing)
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
