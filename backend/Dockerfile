@@ -39,11 +39,11 @@ RUN mkdir -p var/cache var/log config/jwt && \
 # Generamos las llaves JWT automáticamente durante la compilación
 
 RUN echo "APP_ENV=prod" > .env && \
-    echo "DATABASE_URL=sqlite:///:memory:" >> .env && \
     echo "JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem" >> .env && \
     echo "JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem" >> .env && \
     echo "JWT_PASSPHRASE=proyectotfg" >> .env && \
     echo "APP_SECRET=8f3e2a1c9b0d4e5f6g7h8i9j0k1l2m3n" >> .env && \
     php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
+
 
 EXPOSE 8080

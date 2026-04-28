@@ -79,8 +79,9 @@ class ApiController extends AbstractController
             $this->entityManager->persist($user);
             $this->entityManager->flush();
         } catch(\Exception $e) {
-            return $this->json(['error' => 'User already exists or error creating user'], 400);
+            return $this->json(['error' => 'Registration error: ' . $e->getMessage()], 400);
         }
+
 
         return $this->json([
             'status' => 'success',
