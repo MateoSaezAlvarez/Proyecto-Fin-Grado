@@ -19,8 +19,7 @@ FROM webdevops/php-apache:8.2
 # Variables de entorno para configurar el DocumentRoot y el puerto
 ENV WEB_DOCUMENT_ROOT=/var/www/html/public
 ENV WEB_DOCUMENT_INDEX=index.php
-ENV APACHE_LISTEN_PORT=8080
-
+ENV APACHE_LISTEN_PORT=80
 # Instalamos extensiones necesarias
 RUN apt-get update && apt-get install -y \
     libicu-dev \
@@ -51,4 +50,5 @@ RUN echo "APP_ENV=prod" > .env && \
 
 
 
-EXPOSE 8080
+EXPOSE 80
+
