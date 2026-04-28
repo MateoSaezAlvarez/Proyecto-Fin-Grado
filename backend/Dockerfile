@@ -31,6 +31,10 @@ WORKDIR /var/www/html
 # Copiamos la aplicación desde el stage de vendor
 COPY --from=vendor /app ./
 
+# Copiamos la configuración de Apache personalizada
+COPY apache-vhost.conf /opt/docker/etc/httpd/vhost.conf
+
+
 # Permisos para Symfony
 RUN mkdir -p var/cache var/log config/jwt && \
     chown -R www-data:www-data var/ config/jwt && \
