@@ -46,6 +46,8 @@ RUN echo "APP_ENV=prod" > .env && \
     echo "JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem" >> .env && \
     echo "JWT_PASSPHRASE=proyectotfg" >> .env && \
     echo "APP_SECRET=8f3e2a1c9b0d4e5f6g7h8i9j0k1l2m3n" >> .env && \
+    echo "DEFAULT_URI=https://proyecto-fin-grado-production.up.railway.app" >> .env && \
+
     DATABASE_URL=sqlite:///:memory: php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
 
 
