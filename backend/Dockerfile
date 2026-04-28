@@ -36,8 +36,9 @@ COPY apache-vhost.conf /opt/docker/etc/httpd/vhost.conf
 
 # Permisos para Symfony
 RUN mkdir -p var/cache var/log config/jwt && \
-    chown -R www-data:www-data var/ config/jwt && \
+    chown -R application:application var/ config/jwt && \
     chmod -R 775 var/
+
 
 # Generamos las llaves JWT automáticamente durante la compilación
 
