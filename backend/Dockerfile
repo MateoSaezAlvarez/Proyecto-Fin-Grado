@@ -39,7 +39,7 @@ RUN mkdir -p var/cache var/log config/jwt && \
 # Generamos las llaves JWT automáticamente durante la compilación
 
 RUN echo "APP_ENV=prod" > .env && \
-    echo "DATABASE_URL=mysql://root:root@127.0.0.1:3307/tfg" >> .env && \
+    echo "DATABASE_URL=sqlite:///:memory:" >> .env && \
     php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
 
 EXPOSE 8080
