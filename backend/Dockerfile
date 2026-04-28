@@ -36,10 +36,7 @@ RUN mkdir -p var/cache var/log config/jwt && \
     chown -R www-data:www-data var/ config/jwt && \
     chmod -R 775 var/
 
-# Generamos las llaves JWT automáticamente durante la compilación
-# Truco: creamos un .env vacío para que Symfony no se queje, generamos llaves y borramos el .env
-RUN touch .env && \
-    php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction && \
-    rm .env
+# Generamos las llaves JWT automáticamente durante la compilación forzando APP_ENV=prod
+RUN APP_ENV=prod php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
 
 EXPOSE 8080
