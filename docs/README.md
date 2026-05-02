@@ -1,23 +1,35 @@
-# 🎲 D&D Management System - Proyecto Fin de Grado
+# 🎲 Gestor de Personajes y Apoyo para las Sesiones de Dragones y Mazmorras - Proyecto Fin de Grado
 
 ### Desarrollado por Mateo Sáez
 
-Como jugador de Dungeons & Dragons, he observado que las sesiones de juego se suelen alargar, dado que hay ocasiones en las que hay que sumar muchos bonificadores, ya sea en una tirada común como en un combate. El fin de este proyecto es facilitar la gestión de partidas de D&D (forma abreviada de Dungeons & Dragons). Permite tanto a Dungeon Masters como a Jugadores llevar un control exhaustivo de sus campañas, personajes y combates de una forma intuitiva y dinámica.
+Como jugador de Dragones y Mazmorras, he observado que las sesiones de juego se suelen alargar, dado que hay ocasiones en las que hay que sumar muchos bonificadores, ya sea en una tirada común como en un combate. El fin de este proyecto es facilitar la gestión de partidas de D&D (forma abreviada de Dungeons & Dragons). Permite tanto a Dungeon Masters como a Jugadores llevar un control exhaustivo de sus campañas, personajes y combates de una forma intuitiva y dinámica. He tomado como referencia la aplicación de Roll20 y el creador de personajes de D&D Beyond.
 
 **URL del Proyecto:** [https://extraordinary-analysis-production.up.railway.app](https://extraordinary-analysis-production.up.railway.app)
 
 ---
 
-## 🚀 Resumen: ¿Para qué sirve?
+## ¿Para qué sirve esta aplicación?
 
 La aplicación nace de la necesidad de agilizar la experiencia de juego en mesa, ya que las tiradas y los cálculos suelen ocupar una parte importante de la sesión, dejando el roleo a un segundo plano. Esta aplicación sirve como un apoyo el cual complementa la hoja de papel tradicional, permitiendo:
 - **Automatización de cálculos:** Olvida sumar manualmente bonificadores; la app lo hace por ti.
-- **Historial de daods:** Registro en tiempo real de todas las tiradas de dados en una campaña, ya sean habilidad, salvación o combate.
+- **Historial de dados:** Registro en tiempo real de todas las tiradas de dados en una campaña, ya sean de habilidad, de salvación, de ataque o de daño.
 - **Gestión centralizada:** Todo lo necesario para una sesión de juego en un solo lugar, accesible desde cualquier ordenador.
 
 ---
 
-## 🛠️ Tecnologías Usadas
+## Roles
+
+La aplicación distingue dos tipos de roles:
+
+- **Jugador**: Puede crear y gestionar sus personajes, unirse a campañas y realizar tiradas de dados.
+- **Dungeon Master**: Puede crear y gestionar campañas, invitar jugadores a sus campañas, gestionar las hojas de personaje de sus jugadores, realizar tiradas de dados y acceder al historial de tiradas.
+
+## ¿Por qué es útil esta aplicación?
+Como se ha expuesto; las sesiones de rol presenciales suelen alargarse cuando llega el momento de tirar dados y la experiencia conjunta de contar una historia se transforma en un excel donde hay que realizar cálculos; aunque sean sumas y restas, al haber tantos dados y también muchos jugadores en la mesa, los cálculos se hacen tediosos y pesados, y es aquí donde entra en juego esta aplicación para hacer que la experiencia sea más fluida y dinámica.
+
+---
+
+## Tecnologías Usadas
 
 El proyecto utiliza un conjunto de tecnologías moderno y robusto para garantizar rendimiento y escalabilidad:
 
@@ -64,7 +76,7 @@ El esquema se compone de las siguientes tablas principales:
 
 ---
 
-## 👥 Roles de Usuario
+## Roles de Usuario
 
 La aplicación distingue dos roles fundamentales:
 
@@ -78,11 +90,11 @@ La aplicación distingue dos roles fundamentales:
 - Crear y gestionar múltiples campañas.
 - Invita a jugadores a sus campañas.
 - Supervisa las hojas de personaje de todos sus jugadores.
-- **Historial de Tiradas:** Visualizar en tiempo real los resultados de los dados de todos los jugadores de la mesa.
+- Historial de Tiradas: Visualizar en tiempo real los resultados de los dados de todos los jugadores de la mesa.
 
 ---
 
-## 🚢 Despliegue y Dockerización
+## Despliegue y Dockerización
 
 El proyecto está totalmente **dockerizado**, lo que facilita su despliegue y ejecución local.
 
@@ -98,18 +110,25 @@ El despliegue se realiza en Railway mediante la conexión directa con GitHub, co
 
 ---
 
-## 💡 Casos de Uso (User Stories)
+## Casos de Uso (User Stories)
 
 | Rol | Acción | Resultado esperado |
 | :--- | :--- | :--- |
-| **Jugador** | Click en "Atacar con Espada Larga" | El sistema calcula `1d20 + Bono Competencia + Mod. Fuerza` y registra el resultado. |
+| **Usuario** | Login y Registro | Al entrar en la aplicación, todos deben registrarse para acceder a todas las funcionalidades que ofrece la aplicación. |
+| **Jugador** | Unirse a una campaña | Antes de poder crear un personaje, el usuario debe unirse a una campaña que esté en curso. |
+| **Jugador** | Crear un personaje | La columna del proyecto. Todos los jugadores crean su personaje mediante un formulario completo con todas las características y habilidades de Dragones y Mazmorras |
+| **Jugador** | Crear un ataque | Cuando el personaje está creado, el jugador puede asignarle ataques con un formulario simple contemplando las opciones que ofrece Dragones y Mazmorras. |
+| **Jugador** | Hacer una tirada de ataque | El sistema calcula `1d20 + Bono Competencia (si lo hubiera) + Mod.` y registra el resultado. |
+| **Jugador** | Hacer una tirada de habilidad | El sistema calcula `1d20 + Bono Competencia (si lo hubiera) + Mod.` y registra el resultado. |
+| **Jugador** | Hacer una tirada de salvación | El sistema calcula `1d20 + Bono Competencia (si lo hubiera) + Mod.` y registra el resultado. |
+| **Jugador** | Hacer una tirada de daño | El sistema calcula `dado de daño (se usan varios tipos de dados: 1d4, 1d6, 1d8, 1d10 y 1d12) + Mod.` y registra el resultado. |
 | **Jugador** | Subir las características | Los bonificadores de las habilidades y tiradas de salvación se actualizan automáticamente. |
-| **Master** | Crear Campaña | Se genera un espacio de juego donde los jugadores pueden unirse con sus personajes. |
-| **Master** | Revisar historial | El DM ve que el Jugador X ha sacado un 20 natural en su última tirada de percepción. |
+| **Master** | Crear Campaña | Se crea una campaña mediante un formulario donde los jugadores pueden unirse con sus personajes. |
+| **Master** | Revisar historial de tiradas | El DM ve los resultados de las tiradas de sus jugadores. |
 
 ---
 
-## 📸 Capturas de Pantalla
+## Capturas de Pantalla
 
 ### Pantalla de inicio
 ![Pantalla de inicio](screenshots/landing-page.png)
@@ -140,6 +159,9 @@ El despliegue se realiza en Railway mediante la conexión directa con GitHub, co
 
 ### Creación de Campañas
 ![Creación de Campañas](screenshots/form-campaña.png)
+
+### Listado de Campañas por Usuario
+![Listado de Campañas](screenshots/mis-campañas.png)
 
 ### Creación de Personajes
 ![Creación de Personajes](screenshots/form-personaje-1.png)

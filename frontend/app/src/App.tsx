@@ -4,6 +4,7 @@ import CreateCharacter from './pages/CreateCharacter';
 import CreateAttack from './pages/CreateAttack';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Campaigns from './pages/Campaigns';
 import CharacterSheet from './pages/CharacterSheet';
 import Register from './pages/Register';
 import MyCharacters from './pages/MyCharacters';
@@ -20,7 +21,7 @@ const App = () => {
         {/* Protected Routes wrapped in Layout (Sidebar) */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/campaigns" element={<Dashboard />} />
+          <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/characters" element={<MyCharacters />} />
           <Route path="/characters/new" element={<CreateCharacter />} />
           <Route path="/campaign/:id" element={<CampaignDetail />} />

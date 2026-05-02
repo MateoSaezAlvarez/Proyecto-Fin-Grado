@@ -101,12 +101,12 @@ const Dashboard = () => {
     return (
         <main style={{ padding: '2rem', width: '100%', minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h1>{isGuest ? 'Bienvenido al multiverso de D&D' : `Todas las campañas`}</h1>
+            <h1 style={{ color: 'var(--accent-color)' }}>{isGuest ? 'Bienvenido al multiverso de D&D' : `Todas las campañas`}</h1>
             <div style={{ display: 'flex', gap: '1rem' }}>
                 {isGuest ? (
                     <>
                     <button className="btn-primary" onClick={() => navigate('/login')} style={{ backgroundColor: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)' }}>
-                        Iniciar sesion
+                        Iniciar Sesión
                     </button>
                     <button className="btn-primary" onClick={() => navigate('/register')}>
                         Registrarse
