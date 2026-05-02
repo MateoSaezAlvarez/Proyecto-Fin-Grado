@@ -127,6 +127,10 @@ El despliegue se realiza en Railway mediante la conexión directa con GitHub, co
 | **Master** | Revisar historial de tiradas | El DM ve los resultados de las tiradas de sus jugadores. |
 
 ---
+## Credenciales de prueba
+Usuario: jugador
+Contraseña: jugador
+---
 
 ## Capturas de Pantalla
 
